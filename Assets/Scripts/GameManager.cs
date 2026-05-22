@@ -33,10 +33,22 @@ public class GameManager : MonoBehaviour
         _generator = new PuzzleGenerator();
     }
 
+    public LevelData? CurrentLevelData;
+    public int CurrentMoveCount => UndoStack.Count;
+
     private void Start()
     {
         GenerateGrid();
-        LoadNewPuzzle();
+        
+        // If no level was passed in (e.g. testing the scene directly), load a random one
+        if (CurrentLevelData == null)
+        {
+            LoadNewPuzzle();
+        }
+        else
+        {
+            LoadLevel(CurrentLevelData.Value);
+        }
     }
 
     private void GenerateGrid()
@@ -67,9 +79,20 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    public void LoadLevel(LevelData level)
+    {
+        UndoStack.Clear();
+        CurrentLevelData = level;
+        Def = level.GetDefinition();
+        CurrentState = new PuzzleState(level.InitialStateData);
+        SpawnCars();
+    }
+
     public void LoadNewPuzzle()
     {
         UndoStack.Clear();
+        CurrentLevelData = null; // Mark as random puzzle
+        
         // Generate an 8-car puzzle requiring at least 8 moves
         if (_generator.TryGenerateDensityFirst(8, 8, out PuzzleDefinition def, out PuzzleState state, out PuzzleQualityMetrics metrics))
         {
@@ -112,8 +135,30 @@ public class GameManager : MonoBehaviour
             UndoStack.Push(CurrentState);
             CurrentState.SetCarPos(carIndex, newPos);
             SyncCarVisuals();
-            CheckWinCondition();
+
+            // Check Win
+            if (carIndex == BitboardSolver.GOAL_CAR_INDEX && newPos == BitboardSolver.GOAL_POSITION)
+            {
+                HandleVictory();
+            }
         }
+    }
+
+    private void HandleVictory()
+    {
+        Debug.Log("Puzzle Solved!");
+        if (CurrentLevelData.HasValue)
+        {
+            SaveManager.RecordVictory(CurrentLevelData.Value.ID, CurrentMoveCount);
+            Debug.Log($"Level Complete! Your Moves: {CurrentMoveCount} | Optimal: {CurrentLevelData.Value.OptimalMoves}");
+        }
+        else
+        {
+            Debug.Log($"Random Puzzle Complete! Your Moves: {CurrentMoveCount}");
+        }
+
+        // Delay loading next
+        Invoke("LoadNewPuzzle", 1.5f);
     }
 
     public void UndoMove()
