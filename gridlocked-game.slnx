@@ -1,0 +1,4 @@
+﻿<Solution>
+  <Project Path="AssemblyDefinition.csproj" />
+  <Project Path="Tests.csproj" />
+</Solution>

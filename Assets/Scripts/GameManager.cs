@@ -1,83 +1,200 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
+    public static GameManager Instance;
 
-    [SerializeField] public int boardWidth = 6;
-    [SerializeField] public GridSpace goalSpace = new(5, 2);
-    [SerializeField] public static GridSpace carStartSpace = new(0, 2);
-    [SerializeField] public int numCars = 10;
-    [SerializeField] public float shortCarFraction = 0.5f;
-    [SerializeField] public Color goalCarColor = Color.red;
-    private static readonly List<Color> colors = new List<Color> { Color.black, Color.blue, Color.cyan, Color.green, Color.white, Color.yellow, };
-    [SerializeField] public List<Color> carColors = colors;
-    [SerializeField] public float verticalOrientationFraction = 0.55f;
-    [SerializeField] public int boardGenRetries = 50;
-    [SerializeField] public int carPlaceRetries = 50;
-    [SerializeField] public int maxLongCars = 4;
-    [SerializeField] public int maxDepth = 20;
-    [SerializeField] public int maxVisits = 1000;
+    [Header("Puzzle Definition")]
+    // Since we generate at runtime, this will hold the current puzzle.
+    public PuzzleDefinition Def;
+    public PuzzleState CurrentState;
+    
+    [Header("State Tracking")]
+    public Stack<PuzzleState> UndoStack = new Stack<PuzzleState>();
 
-    public Board board;
-    public Solver solver;
-    public Solution solution;
-    public Generator generator;
+    [Header("Visual Prefabs")]
+    public GameObject carPrefab;
+    public Transform boardContainer;
 
-    //[SerializeField] private Block _blockPrefab;
-    //[SerializeField] private SpriteRenderer _boardPrefab;
-    //[SerializeField] private float _travelTime = 0.2f;
-    //[SerializeField] private GameObject _winScreen;
-    //[SerializeField] private GameObject _loseScreen;
+    private Dictionary<int, CarController> _carVisuals = new Dictionary<int, CarController>();
+    private PuzzleGenerator _generator;
 
-    void Start() {
-        Debug.Log("Initializing generator");
-
-        generator = new (boardWidth, goalSpace, numCars, shortCarFraction, goalCarColor, carColors, verticalOrientationFraction, boardGenRetries, carPlaceRetries, maxLongCars);
-
-        GenerateAndSolve();
+    private void Awake()
+    {
+        if (Instance == null) Instance = this;
+        
+        if (carPrefab == null) 
+            carPrefab = Resources.Load<GameObject>("CarPrefab");
+            
+        if (boardContainer == null) 
+            boardContainer = GameObject.Find("BoardContainer")?.transform;
+            
+        _generator = new PuzzleGenerator();
     }
 
-    public void GenerateAndSolve() {
-        Debug.Log("Starting generation");
+    private void Start()
+    {
+        GenerateGrid();
+        LoadNewPuzzle();
+    }
 
-        int boardTries = 0;
-
-        board = generator.GenerateBoard();
-
-        while (board.IsWinCondition() && boardTries < boardGenRetries) {
-            board = generator.GenerateBoard();
-            boardTries++;
-            Debug.Log("Board Tries: " + boardTries.ToString());
-        }
-
-        Debug.Log(board.ToString());
-        Debug.Log("Completed generation");
-
-        solver = new BFSSolver(board, maxDepth, maxVisits);
-        Debug.Log("Starting solver");
-        solution = solver.Solve();
-        Debug.Log("Completed solving process");
-        if (solution is not null) {
-            Debug.Log("Solution has " + solution.CountMoves().ToString() + " moves.");
-        }
+    private void GenerateGrid()
+    {
+        if (boardContainer.childCount > 0 && boardContainer.GetChild(0).name.StartsWith("Cell_")) return; // Already generated
         
-        Debug.Log(solution);
+        float cellSize = 100f;
+        Color colorA = new Color(0.1f, 0.15f, 0.25f, 1f);
+        Color colorB = new Color(0.15f, 0.2f, 0.3f, 1f);
+
+        for (int y = 0; y < 6; y++)
+        {
+            for (int x = 0; x < 6; x++)
+            {
+                GameObject cell = new GameObject($"Cell_{x}_{y}");
+                cell.transform.SetParent(boardContainer, false);
+                cell.transform.SetAsFirstSibling();
+
+                RectTransform cellRT = cell.AddComponent<RectTransform>();
+                cellRT.anchorMin = Vector2.zero;
+                cellRT.anchorMax = Vector2.zero;
+                cellRT.sizeDelta = new Vector2(cellSize, cellSize);
+                cellRT.anchoredPosition = new Vector2(x * cellSize + (cellSize/2), y * cellSize + (cellSize/2));
+
+                UnityEngine.UI.Image img = cell.AddComponent<UnityEngine.UI.Image>();
+                img.color = ((x + y) % 2 == 0) ? colorA : colorB;
+            }
+        }
+    }
+
+    public void LoadNewPuzzle()
+    {
+        UndoStack.Clear();
+        // Generate an 8-car puzzle requiring at least 8 moves
+        if (_generator.TryGenerateDensityFirst(8, 8, out PuzzleDefinition def, out PuzzleState state, out PuzzleQualityMetrics metrics))
+        {
+            Def = def;
+            CurrentState = state;
+            SpawnCars();
+        }
+        else
+        {
+            Debug.LogError("Failed to generate puzzle.");
+        }
+    }
+
+    private void SpawnCars()
+    {
+        // Cleanup old cars
+        foreach (var car in _carVisuals.Values)
+        {
+            Destroy(car.gameObject);
+        }
+        _carVisuals.Clear();
+
+        // Spawn new cars
+        for (int i = 0; i < Def.CarCount; i++)
+        {
+            GameObject carObj = Instantiate(carPrefab, boardContainer);
+            CarController controller = carObj.GetComponent<CarController>();
+            
+            controller.Initialize(i, Def.Lengths[i], Def.IsHorizontal[i], Def.FixedAxis[i]);
+            _carVisuals[i] = controller;
+        }
+
+        SyncCarVisuals();
+    }
+
+    public void CommitMove(int carIndex, int newPos)
+    {
+        if (CurrentState.GetCarPos(carIndex) != newPos)
+        {
+            UndoStack.Push(CurrentState);
+            CurrentState.SetCarPos(carIndex, newPos);
+            SyncCarVisuals();
+            CheckWinCondition();
+        }
+    }
+
+    public void UndoMove()
+    {
+        if (UndoStack.Count > 0)
+        {
+            CurrentState = UndoStack.Pop();
+            SyncCarVisuals();
+        }
+    }
+
+    public void SyncCarVisuals()
+    {
+        for (int i = 0; i < Def.CarCount; i++)
+        {
+            int currentPos = CurrentState.GetCarPos(i);
+            _carVisuals[i].UpdateVisualPosition(currentPos);
+        }
+    }
+
+    public void GetDragBounds(int carIndex, out int minPos, out int maxPos)
+    {
+        // 1. Get full mask
+        ulong mask = Def.ComputeOccupancyMask(CurrentState);
+        
+        // 2. Clear this specific car from the mask
+        ulong carMask = Def.GetCarMask(carIndex, CurrentState.GetCarPos(carIndex));
+        mask &= ~carMask;
+
+        int length = Def.Lengths[carIndex];
+        int currentPos = CurrentState.GetCarPos(carIndex);
+        bool isHoriz = Def.IsHorizontal[carIndex];
+        int fixedAx = Def.FixedAxis[carIndex];
+
+        // 3. Scan Left/Down for minBound
+        minPos = currentPos;
+        for (int p = currentPos - 1; p >= 0; p--)
+        {
+            ulong checkMask = Def.GetCarMask(carIndex, p);
+            if ((mask & checkMask) != 0) break; // Hit something
+            minPos = p;
+        }
+
+        // 4. Scan Right/Up for maxBound
+        maxPos = currentPos;
+        for (int p = currentPos + 1; p <= Def.Width - length; p++)
+        {
+            ulong checkMask = Def.GetCarMask(carIndex, p);
+            if ((mask & checkMask) != 0) break; // Hit something
+            maxPos = p;
+        }
+    }
+
+    private void CheckWinCondition()
+    {
+        if (CurrentState.GetCarPos(BitboardSolver.GOAL_CAR_INDEX) == BitboardSolver.GOAL_POSITION)
+        {
+            Debug.Log("Puzzle Solved!");
+            // Here we could trigger a win UI and then LoadNewPuzzle()
+            LoadNewPuzzle();
+        }
+    }
+
+    public void ShowHint()
+    {
+        BitboardSolver solver = new BitboardSolver();
+        var path = solver.Solve(Def, CurrentState);
+        if (path != null && path.Count > 1)
+        {
+            PuzzleState nextState = path[1];
+            for (int i = 0; i < Def.CarCount; i++)
+            {
+                if (CurrentState.GetCarPos(i) != nextState.GetCarPos(i))
+                {
+                    if (_carVisuals.TryGetValue(i, out CarController car))
+                    {
+                        car.FlashHint();
+                    }
+                    break;
+                }
+            }
+        }
     }
 }
-
-
-
-
-
-public enum GameState
-{
-    GenerateLevel,
-    Solving,
-    SpawningCars,
-    WaitingInput,
-    Moving,
-    Win,
-    Lose
-}   

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gridlocked D3.js Visualizations</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <h1>Gridlocked Solution Space Analysis</h1>
+            <p>Interactive Data-Oriented Design Metrics</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="controls-panel">
+                <h2>Analysis Controls</h2>
+                <button id="loadGraphBtn">Load Graph Data</button>
+                <div id="statsPanel" class="stats-box">
+                    <p><strong>Nodes:</strong> <span id="nodeCount">0</span></p>
+                    <p><strong>Edges:</strong> <span id="edgeCount">0</span></p>
+                    <p><strong>Shortest Path:</strong> <span id="shortestPath">0</span> moves</p>
+                </div>
+            </div>
+
+            <div class="visualization-grid">
+                <!-- 1. The Hourglass (Area Chart) -->
+                <div class="viz-card">
+                    <h3>1. The "Aha! Bottleneck" (Hourglass)</h3>
+                    <p class="subtitle">Branching factor mapped across BFS depth</p>
+                    <div id="hourglassViz" class="d3-container"></div>
+                </div>
+
+                <!-- 2. The Spine and Ribs (Directed Graph) -->
+                <div class="viz-card">
+                    <h3>2. The Spine & Ribs (Deception Graph)</h3>
+                    <p class="subtitle">Force-directed tree showing optimal path and deepest dead-ends</p>
+                    <div id="spineViz" class="d3-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>

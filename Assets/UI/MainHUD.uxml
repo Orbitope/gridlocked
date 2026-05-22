@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:editor="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
+>
+    <ui:VisualElement picking-mode="Ignore" style="flex-grow: 1; align-items: center; justify-content: flex-end; padding-bottom: 80px;">
+        <ui:VisualElement picking-mode="Ignore" style="flex-direction: row; justify-content: space-between; width: 500px;">
+            <ui:Button name="undo-btn" text="Undo" style="width: 140px; height: 60px; font-size: 24px;" />
+            <ui:Button name="hint-btn" text="Hint" style="width: 140px; height: 60px; font-size: 24px;" />
+            <ui:Button name="new-puzzle-btn" text="New" style="width: 140px; height: 60px; font-size: 24px;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
