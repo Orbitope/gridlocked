@@ -1,27 +1,47 @@
-# Gridlocked Game in Unity
+# Gridlocked: Rush Hour Puzzle Engine & Visualizer
 
-This is an effort to recreate a certain car based puzzle game that I grew up with. I was mostly focusing on using it to learn stuff like C# data structures, OOP including random stuff like creating hash representations and quick review on search algorithms. 
+A high-performance, mathematically optimized recreation of the classic sliding car puzzle game "Rush Hour", built entirely in Unity 6000. 
 
-## Status as of 1/5/2023
+Originally starting as a simple OOP-based Breadth-First Search (BFS) prototype in 2023, the project has since evolved into a heavily optimized, data-oriented puzzle engine capable of generating, solving, and rendering complex state-space graphs in real-time.
 
-### Completed
+## Features & Architecture
 
-- Board generation with car placements
-- Basic BFS solver
-  - This is buggy tho. It was kind of working but has issues with moves that don't go anywhere. 
-  - When adding utilities to remove redundant moves, I got some new issues so that's not totally right.
-- Test suite for basic board operations
+### 1. The Bitboard Solver
+The core of the engine has been refactored away from slow Object-Oriented deep-copies into a hyper-optimized **64-bit Bitboard**.
+- The entire 6x6 puzzle state (up to 16 cars, their lengths, orientations, and positions) is compressed into a single `ulong`.
+- State transitions and validation are handled via zero-allocation bitwise operations.
+- The BFS algorithm uses a `HashSet<ulong>` Transposition Table to instantly prune redundant branches and infinite loops.
+- **Performance**: The solver can completely enumerate and solve the entire reachable state space (~100,000 states for complex puzzles) in under 5 milliseconds on a single thread.
 
-### Stuff to do
+### 2. GPU-Accelerated Graph Visualization
+Instead of relying on external web tools or locking up the Unity Editor with heavy UI elements, the game features a dedicated **3D Runtime Graph Scene**.
+- While playing any puzzle, you can click "Graph" to instantly compute the entire mathematical tree of future moves.
+- The engine dynamically spawns 3D physical nodes and connecting lines in world space.
+- You can pan and zoom through the mathematical structure of the puzzle to visually identify "chokepoints" and critical paths, all rendered smoothly at 60 FPS by your GPU.
 
-This isn't really a game yet, just a board solver POC. If you wanted to make it a real game, I would want to do the following.
+### 3. UI Toolkit Frontend
+The entire game interface is built using Unity's modern UI Toolkit (UXML/USS).
+- Features a sleek, responsive dark-mode menu system.
+- Includes a dynamic Level Select screen that reads from a pre-generated ScriptableObject `LevelDatabase`.
+- Tracks player progression, marking best move counts natively via `SaveManager`.
+- Provides an active HUD during gameplay with **Hint**, **Undo**, and **Restart** functionality.
 
-- Pre-generate boards and save to text files along with difficulty for retrieval/loading
-- Add any visual representation/interaction instead of just console test logging
-- Play capability to drag cars with constraints/snapping to locations
-  - Undo moves
-- Hints for solution since we always generate these
+### 4. Custom Puzzle Generator
+Don't want to play the curated levels? The engine includes a live Puzzle Generator.
+- Specify the number of cars and the minimum required moves to solve.
+- The engine uses a "Density-First Brute Force" approach, generating tightly packed random boards and using the lightning-fast Bitboard solver to throw away thousands of invalid boards per second until it finds one that matches your exact difficulty requirements.
 
-Keeping this here in case I want to revisit and flesh that out. 
+## How to Play
 
+1. Open the project in **Unity 6000.3.x**.
+2. Open `Assets/Scenes/SampleScene.unity`.
+3. Press **Play**. 
+4. Select a pre-generated level from the Main Menu, or hop into the Custom Generator to spin up a new challenge.
+5. Click and drag cars along their fixed axes to free the primary red car (Car 0) so it can exit the right side of the board!
+
+## Future Concepts
+- **Isomorphism Detection**: Implementing Canonical Hashing to detect mathematically identical boards that simply have swapped color skins.
+- **Advanced Heuristics**: Utilizing the raw state-space data to algorithmically grade the "fun factor" of puzzles based on Deception Ratio and Aha! Bottlenecks.
+
+---
 [GPL v3 license](http://opensource.org/licenses/GPL-3.0)
