@@ -43,10 +43,21 @@ public class UIManager : MonoBehaviour
         root.Q<Button>("menu-btn").clicked += () => SwitchScreen(_mainMenuScreen);
         root.Q<Button>("undo-btn").clicked += () => GameManager.Instance.UndoMove();
         root.Q<Button>("hint-btn").clicked += () => GameManager.Instance.ShowHint();
+        root.Q<Button>("graph-btn").clicked += LoadGraphScene;
         root.Q<Button>("new-puzzle-btn").clicked += RestartCurrentPuzzle;
 
         // Init
         SwitchScreen(_mainMenuScreen);
+    }
+
+    private void LoadGraphScene()
+    {
+        if (GameManager.Instance != null && GameManager.Instance.Def != null)
+        {
+            CrossSceneData.TargetDef = GameManager.Instance.Def;
+            CrossSceneData.TargetState = GameManager.Instance.CurrentState;
+            UnityEngine.SceneManagement.SceneManager.LoadScene("GraphScene");
+        }
     }
 
     private void SwitchScreen(VisualElement screen)

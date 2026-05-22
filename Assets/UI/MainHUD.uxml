@@ -34,10 +34,11 @@
 
     <!-- Game Screen -->
     <ui:VisualElement name="game-screen" picking-mode="Ignore" style="flex-grow: 1; align-items: center; justify-content: flex-end; padding-bottom: 80px; display: none;">
-        <ui:VisualElement picking-mode="Ignore" style="flex-direction: row; justify-content: space-between; width: 600px;">
+        <ui:VisualElement picking-mode="Ignore" style="flex-direction: row; justify-content: space-between; width: 750px;">
             <ui:Button name="menu-btn" text="Menu" style="width: 140px; height: 60px; font-size: 24px;" />
             <ui:Button name="undo-btn" text="Undo" style="width: 140px; height: 60px; font-size: 24px;" />
             <ui:Button name="hint-btn" text="Hint" style="width: 140px; height: 60px; font-size: 24px;" />
+            <ui:Button name="graph-btn" text="Graph" style="width: 140px; height: 60px; font-size: 24px;" />
             <ui:Button name="new-puzzle-btn" text="Restart" style="width: 140px; height: 60px; font-size: 24px;" />
         </ui:VisualElement>
     </ui:VisualElement>
