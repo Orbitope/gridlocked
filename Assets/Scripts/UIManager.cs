@@ -45,7 +45,10 @@ public class UIManager : MonoBehaviour
         root.Q<Button>("hint-btn").clicked += () => GameManager.Instance.ShowHint();
         root.Q<Button>("graph-btn").clicked += LoadGraphScene;
         root.Q<Button>("new-puzzle-btn").clicked += RestartCurrentPuzzle;
+    }
 
+    private void Start()
+    {
         // Init
         SwitchScreen(_mainMenuScreen);
     }
