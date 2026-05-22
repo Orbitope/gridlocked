@@ -88,13 +88,21 @@ public class GameManager : MonoBehaviour
         SpawnCars();
     }
 
-    public void LoadNewPuzzle()
+    public void ClearBoard()
+    {
+        foreach (var car in _carVisuals.Values)
+        {
+            Destroy(car.gameObject);
+        }
+        _carVisuals.Clear();
+    }
+
+    public void LoadCustomPuzzle(int carCount, int minMoves)
     {
         UndoStack.Clear();
         CurrentLevelData = null; // Mark as random puzzle
         
-        // Generate an 8-car puzzle requiring at least 8 moves
-        if (_generator.TryGenerateDensityFirst(8, 8, out PuzzleDefinition def, out PuzzleState state, out PuzzleQualityMetrics metrics))
+        if (_generator.TryGenerateDensityFirst(carCount, minMoves, out PuzzleDefinition def, out PuzzleState state, out PuzzleQualityMetrics metrics))
         {
             Def = def;
             CurrentState = state;
@@ -104,6 +112,11 @@ public class GameManager : MonoBehaviour
         {
             Debug.LogError("Failed to generate puzzle.");
         }
+    }
+
+    public void LoadNewPuzzle()
+    {
+        LoadCustomPuzzle(8, 8); // Default
     }
 
     private void SpawnCars()

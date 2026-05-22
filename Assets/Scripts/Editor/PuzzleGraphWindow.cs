@@ -68,13 +68,24 @@ public class PuzzleGraphView : GraphView
 
         Dictionary<ulong, Node> nodes = new Dictionary<ulong, Node>();
         
-        // Create nodes
         int x = 0;
         int y = 0;
         int rowCount = 0;
+        int maxRenderNodes = 200;
 
+        Debug.Log($"Solver mapped {solver.GraphEdges.Count} total states.");
+        
+        if (solver.GraphEdges.Count > maxRenderNodes)
+        {
+            Debug.LogWarning($"Graph is too large to render entirely ({solver.GraphEdges.Count} nodes). Rendering the first {maxRenderNodes} nodes to prevent Unity from freezing.");
+        }
+
+        // Create nodes
+        int renderedCount = 0;
         foreach (var kvp in solver.GraphEdges)
         {
+            if (renderedCount >= maxRenderNodes) break;
+
             var node = CreateNode(kvp.Key.ToString());
             node.SetPosition(new Rect(x, y, 150, 100));
             AddElement(node);
@@ -88,22 +99,20 @@ public class PuzzleGraphView : GraphView
                 x = 0;
                 y += 150;
             }
+            renderedCount++;
         }
 
         // Create edges
-        foreach (var kvp in solver.GraphEdges)
+        foreach (var kvp in nodes)
         {
-            if (nodes.TryGetValue(kvp.Key, out Node parentNode))
+            var outputPort = kvp.Value.outputContainer[0] as Port;
+            foreach (ulong childData in solver.GraphEdges[kvp.Key])
             {
-                var outputPort = parentNode.outputContainer[0] as Port;
-                foreach (ulong childData in kvp.Value)
+                if (nodes.TryGetValue(childData, out Node childNode))
                 {
-                    if (nodes.TryGetValue(childData, out Node childNode))
-                    {
-                        var inputPort = childNode.inputContainer[0] as Port;
-                        var edge = outputPort.ConnectTo(inputPort);
-                        AddElement(edge);
-                    }
+                    var inputPort = childNode.inputContainer[0] as Port;
+                    var edge = outputPort.ConnectTo(inputPort);
+                    AddElement(edge);
                 }
             }
         }
