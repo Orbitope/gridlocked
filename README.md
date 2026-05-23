@@ -44,4 +44,7 @@ Don't want to play the curated levels? The engine includes a live Puzzle Generat
 - **Advanced Heuristics**: Utilizing the raw state-space data to algorithmically grade the "fun factor" of puzzles based on Deception Ratio and Aha! Bottlenecks.
 
 ---
-[GPL v3 license](http://opensource.org/licenses/GPL-3.0)
+## License
+
+This project is licensed under the [Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/). 
+You are free to share and adapt the material, provided you give appropriate credit and do not use the material for commercial purposes. See the `LICENSE` file for details.
