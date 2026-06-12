@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -96,8 +97,30 @@ namespace Gridlocked
                 _controllers[i] = ctrl;
             }
 
-            if (SolvedText != null) SolvedText.gameObject.SetActive(false);
-            if (InstructionsText != null) InstructionsText.text = "Drag pieces along their axis  |  Ctrl+Z = undo";
+            if (SolvedText != null)
+            {
+                SolvedText.gameObject.SetActive(false);
+                SolvedText.color = new Color32(0xE8,0xC0,0x68,255);
+                SolvedText.fontSize = 48;
+                PositionRect(SolvedText.GetComponent<RectTransform>(), 0f, 0f, 500f, 80f);
+            }
+            if (MoveCountText != null)
+            {
+                MoveCountText.color = new Color32(0x9A,0x94,0x84,255);
+                MoveCountText.fontSize = 24;
+                PositionRect(MoveCountText.GetComponent<RectTransform>(),
+                    -Screen.width * 0.5f + 20f, Screen.height * 0.5f - 20f, 200f, 40f,
+                    new Vector2(0f, 1f));
+            }
+            if (InstructionsText != null)
+            {
+                InstructionsText.text  = "Drag pieces along their axis  |  Ctrl+Z = undo";
+                InstructionsText.color = new Color32(0x6A,0x63,0x58,255);
+                InstructionsText.fontSize = 18;
+                PositionRect(InstructionsText.GetComponent<RectTransform>(),
+                    0f, -Screen.height * 0.5f + 20f, 700f, 36f,
+                    new Vector2(0.5f, 0f));
+            }
             RefreshUI();
         }
 
@@ -150,6 +173,19 @@ namespace Gridlocked
         private void RefreshUI()
         {
             if (MoveCountText != null) MoveCountText.text = $"Moves: {_movesMade}";
+        }
+
+        /// <summary>Sets anchoredPosition, sizeDelta, and pivot on a RectTransform.</summary>
+        private static void PositionRect(RectTransform rt, float x, float y,
+                                         float w, float h, Vector2? pivot = null)
+        {
+            if (rt == null) return;
+            var p = pivot ?? new Vector2(0.5f, 0.5f);
+            rt.pivot           = p;
+            rt.anchorMin       = new Vector2(0.5f, 0.5f);
+            rt.anchorMax       = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = new Vector2(x, y);
+            rt.sizeDelta       = new Vector2(w, h);
         }
 
         // -----------------------------------------------------------------------

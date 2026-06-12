@@ -1,4 +1,6 @@
 ﻿<Solution>
   <Project Path="AssemblyDefinition.csproj" />
+  <Project Path="ContentKit.Editor.csproj" />
+  <Project Path="ContentKit.Runtime.csproj" />
   <Project Path="Tests.csproj" />
 </Solution>

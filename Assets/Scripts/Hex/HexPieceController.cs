@@ -1,4 +1,5 @@
 using System;
+
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -37,21 +38,22 @@ namespace Gridlocked
         private Vector2 _axisStep;      // full canvas vector for one cell step
         private float   _stepMagnitude; // |_axisStep|
 
-        // Colours
+        // Palette B colors — index 0 is always Coral (the ONE target piece per scene rule).
+        // Remaining slots cycle through data-series in priority order.
         private static readonly Color[] PieceColors =
         {
-            new Color(0.93f, 0.27f, 0.27f),
-            new Color(0.27f, 0.53f, 0.93f),
-            new Color(0.27f, 0.83f, 0.47f),
-            new Color(0.93f, 0.73f, 0.27f),
-            new Color(0.67f, 0.27f, 0.93f),
-            new Color(0.27f, 0.83f, 0.93f),
-            new Color(0.93f, 0.47f, 0.73f),
-            new Color(0.57f, 0.83f, 0.27f),
-            new Color(0.93f, 0.57f, 0.27f),
-            new Color(0.47f, 0.27f, 0.67f),
-            new Color(0.73f, 0.93f, 0.47f),
-            new Color(0.27f, 0.47f, 0.67f),
+            new Color32(0xFF,0x5E,0x3A,255),           // 0 — target
+            new Color32(0x6B,0x7A,0x8D,255),   // Steel
+            new Color32(0x7D,0x9A,0x6A,255),   // Sage
+            new Color32(0x9A,0x7A,0xB0,255),   // Mauve
+            new Color32(0xC4,0x7A,0x5A,255),   // Terra
+            new Color32(0xC4,0x9A,0x3C,255),   // Amber
+            new Color32(0x6B,0x7A,0x8D,255),   // Steel (repeat)
+            new Color32(0x7D,0x9A,0x6A,255),   // Sage
+            new Color32(0x9A,0x7A,0xB0,255),   // Mauve
+            new Color32(0xC4,0x7A,0x5A,255),   // Terra
+            new Color32(0xC4,0x9A,0x3C,255),   // Amber
+            new Color32(0x6B,0x7A,0x8D,255),   // Steel
         };
 
         // Flat-top hex axis directions (unit CellSize).
@@ -232,7 +234,7 @@ namespace Gridlocked
             var img = GetComponent<UnityEngine.UI.Image>();
             if (img == null) return;
             var baseColor = PieceColors[PieceIndex % PieceColors.Length];
-            img.color = selected ? Color.Lerp(baseColor, Color.white, 0.4f) : baseColor;
+            img.color = selected ? Color.Lerp(baseColor, new Color32(0xE8,0xC0,0x68,255), 0.45f) : baseColor;
         }
     }
 }

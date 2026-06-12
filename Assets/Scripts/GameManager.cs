@@ -56,8 +56,8 @@ public class GameManager : MonoBehaviour
         if (boardContainer.childCount > 0 && boardContainer.GetChild(0).name.StartsWith("Cell_")) return; // Already generated
         
         float cellSize = 100f;
-        Color colorA = new Color(0.1f, 0.15f, 0.25f, 1f);
-        Color colorB = new Color(0.15f, 0.2f, 0.3f, 1f);
+        Color colorA = new Color32(0x1E,0x1C,0x16,255);
+        Color colorB = new Color32(0x2C,0x2A,0x22,255);
 
         for (int y = 0; y < 6; y++)
         {

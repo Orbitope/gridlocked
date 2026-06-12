@@ -5,41 +5,47 @@
     xmlns:editor="UnityEditor.UIElements"
     xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
 >
+    <!-- Palette B — ContentKit CKColor tokens
+         Void    #111009   Surface #1E1C16   Raised  #2C2A22   Border  #3D3A30
+         TextBright #EDE8DC  TextSecondary #9A9484  TextMuted #6A6358
+         Amber   #C49A3C   Steel   #6B7A8D
+    -->
+
     <!-- Main Menu Screen -->
-    <ui:VisualElement name="main-menu-screen" style="flex-grow: 1; align-items: center; justify-content: center; background-color: rgb(30, 35, 45);">
-        <ui:Label text="Gridlocked" style="font-size: 80px; color: white; -unity-font-style: bold; margin-bottom: 40px;" />
-        <ui:ScrollView name="level-list" style="width: 800px; height: 1000px; background-color: rgba(0,0,0,0.3); border-radius: 20px; padding: 20px;" />
-        <ui:Button name="goto-custom-btn" text="Custom Puzzle Generator" style="width: 600px; height: 80px; font-size: 32px; margin-top: 40px; background-color: rgb(70, 100, 180); color: white; border-radius: 10px;" />
+    <ui:VisualElement name="main-menu-screen" style="flex-grow: 1; align-items: center; justify-content: center; background-color: #111009;">
+        <ui:Label text="Gridlocked" style="font-size: 80px; color: #EDE8DC; -unity-font-style: bold; margin-bottom: 40px;" />
+        <ui:ScrollView name="level-list" style="width: 800px; height: 1000px; background-color: #1E1C16; border-radius: 20px; padding: 20px; border-width: 1px; border-color: #3D3A30;" />
+        <ui:Button name="goto-custom-btn" text="Custom Puzzle Generator" style="width: 600px; height: 80px; font-size: 32px; margin-top: 40px; background-color: #2C2A22; color: #EDE8DC; border-radius: 10px; border-width: 1px; border-color: #3D3A30;" />
     </ui:VisualElement>
 
     <!-- Custom Generator Screen -->
-    <ui:VisualElement name="custom-generator-screen" style="flex-grow: 1; align-items: center; justify-content: center; background-color: rgb(30, 35, 45); display: none;">
-        <ui:Label text="Generate Puzzle" style="font-size: 60px; color: white; -unity-font-style: bold; margin-bottom: 60px;" />
-        
+    <ui:VisualElement name="custom-generator-screen" style="flex-grow: 1; align-items: center; justify-content: center; background-color: #111009; display: none;">
+        <ui:Label text="Generate Puzzle" style="font-size: 60px; color: #EDE8DC; -unity-font-style: bold; margin-bottom: 60px;" />
+
         <ui:VisualElement style="width: 600px; margin-bottom: 40px;">
-            <ui:Label text="Car Count" style="font-size: 32px; color: white;" />
+            <ui:Label text="Car Count" style="font-size: 32px; color: #C8C0AE;" />
             <ui:SliderInt name="car-count-slider" low-value="6" high-value="12" value="8" style="height: 60px;" />
-            <ui:Label name="car-count-label" text="8 Cars" style="font-size: 24px; color: rgb(200, 200, 200); align-self: flex-end;" />
+            <ui:Label name="car-count-label" text="8 Cars" style="font-size: 24px; color: #9A9484; align-self: flex-end;" />
         </ui:VisualElement>
 
         <ui:VisualElement style="width: 600px; margin-bottom: 60px;">
-            <ui:Label text="Minimum Moves" style="font-size: 32px; color: white;" />
+            <ui:Label text="Minimum Moves" style="font-size: 32px; color: #C8C0AE;" />
             <ui:SliderInt name="min-moves-slider" low-value="4" high-value="15" value="8" style="height: 60px;" />
-            <ui:Label name="min-moves-label" text="8 Moves" style="font-size: 24px; color: rgb(200, 200, 200); align-self: flex-end;" />
+            <ui:Label name="min-moves-label" text="8 Moves" style="font-size: 24px; color: #9A9484; align-self: flex-end;" />
         </ui:VisualElement>
 
-        <ui:Button name="generate-btn" text="Generate &amp; Play" style="width: 500px; height: 80px; font-size: 32px; margin-bottom: 20px; background-color: rgb(70, 150, 70); color: white; border-radius: 10px;" />
-        <ui:Button name="back-to-menu-btn" text="Back" style="width: 500px; height: 80px; font-size: 32px; background-color: rgb(100, 100, 100); color: white; border-radius: 10px;" />
+        <ui:Button name="generate-btn" text="Generate &amp; Play" style="width: 500px; height: 80px; font-size: 32px; margin-bottom: 20px; background-color: #C49A3C; color: #111009; border-radius: 10px;" />
+        <ui:Button name="back-to-menu-btn" text="Back" style="width: 500px; height: 80px; font-size: 32px; background-color: #6B7A8D; color: #EDE8DC; border-radius: 10px;" />
     </ui:VisualElement>
 
     <!-- Game Screen -->
     <ui:VisualElement name="game-screen" picking-mode="Ignore" style="flex-grow: 1; align-items: center; justify-content: flex-end; padding-bottom: 80px; display: none;">
-        <ui:VisualElement picking-mode="Ignore" style="flex-direction: row; justify-content: space-between; width: 750px;">
-            <ui:Button name="menu-btn" text="Menu" style="width: 140px; height: 60px; font-size: 24px;" />
-            <ui:Button name="undo-btn" text="Undo" style="width: 140px; height: 60px; font-size: 24px;" />
-            <ui:Button name="hint-btn" text="Hint" style="width: 140px; height: 60px; font-size: 24px;" />
-            <ui:Button name="graph-btn" text="Graph" style="width: 140px; height: 60px; font-size: 24px;" />
-            <ui:Button name="new-puzzle-btn" text="Restart" style="width: 140px; height: 60px; font-size: 24px;" />
+        <ui:VisualElement picking-mode="Ignore" style="flex-direction: row; justify-content: space-between; width: 750px; background-color: #1E1C16; border-radius: 12px; padding: 8px; border-width: 1px; border-color: #3D3A30;">
+            <ui:Button name="menu-btn"       text="Menu"    style="width: 140px; height: 60px; font-size: 24px; background-color: #2C2A22; color: #C8C0AE; border-radius: 8px;" />
+            <ui:Button name="undo-btn"       text="Undo"    style="width: 140px; height: 60px; font-size: 24px; background-color: #2C2A22; color: #C8C0AE; border-radius: 8px;" />
+            <ui:Button name="hint-btn"       text="Hint"    style="width: 140px; height: 60px; font-size: 24px; background-color: #2C2A22; color: #C49A3C; border-radius: 8px;" />
+            <ui:Button name="graph-btn"      text="Graph"   style="width: 140px; height: 60px; font-size: 24px; background-color: #2C2A22; color: #C8C0AE; border-radius: 8px;" />
+            <ui:Button name="new-puzzle-btn" text="Restart" style="width: 140px; height: 60px; font-size: 24px; background-color: #2C2A22; color: #C8C0AE; border-radius: 8px;" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
