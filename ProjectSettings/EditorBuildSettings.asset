@@ -11,5 +11,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/GraphScene.unity
     guid: 3d7d1781d647841b9bb929a15ece1921
+  - enabled: 1
+    path: Assets/Scenes/HexScene.unity
+    guid: 1fce9931dbf4b4c09ab4924b9933efc7
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

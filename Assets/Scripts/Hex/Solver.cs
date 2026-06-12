@@ -2,7 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace Gridlocked;
+namespace Gridlocked
+{
 
 public sealed class SolveResult
 {
@@ -71,10 +72,16 @@ public static class Solver
 
                 for (int dir = -1; dir <= 1; dir += 2)
                 {
-                    if (!board.CanSlide(mask, others, piece.Axis, dir)) continue;
+                    // Slide as far as possible — each reachable position is 1 move.
+                    ulong sliding = mask;
+                    int   slideAnchor = anchors[i];
+                    while (board.CanSlide(sliding, others, piece.Axis, dir))
+                    {
+                    sliding     = board.Shift(sliding, piece.Axis, dir);
+                    slideAnchor += dir * piece.Step(board);
 
                     var next = (int[])anchors.Clone();
-                    next[i] = anchors[i] + dir * piece.Step(board);
+                    next[i] = slideAnchor;
                     var nextKey = StateKey.Pack(next);
 
                     if (depth.ContainsKey(nextKey)) continue;
@@ -91,6 +98,7 @@ public static class Solver
                     }
 
                     frontier.Enqueue(nextKey);
+                    } // end while (slide)
                 }
             }
 
@@ -144,4 +152,5 @@ public static class Solver
 internal static class PieceExtensions
 {
     public static int Step(this Piece p, Board b) => b.Step[p.Axis];
+}
 }

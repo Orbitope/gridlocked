@@ -1,18 +1,13 @@
 using System.Collections.Generic;
 using UnityEngine;
-using TMPro;
+using UnityEngine.UI;
 
 namespace Gridlocked
 {
     /// <summary>
     /// Orchestrates the hex playtest scene.
-    ///
-    /// Controls:
-    ///   Tab          — cycle selected piece
-    ///   Left/Right   — slide selected piece along its axis (±1)
-    ///   Ctrl+Z       — undo
-    ///
-    /// Assign all references in the Inspector, then hit Play.
+    /// Pieces are dragged along their axis — same feel as the square game.
+    /// Ctrl+Z undoes the last committed move.
     /// </summary>
     public class HexGameManager : MonoBehaviour
     {
@@ -24,19 +19,22 @@ namespace Gridlocked
         public GameObject HexPiecePrefab;
 
         [Header("UI")]
-        public TextMeshProUGUI SolvedText;
-        public TextMeshProUGUI MoveCountText;
-        public TextMeshProUGUI SelectedText;
+        public Text SolvedText;
+        public Text MoveCountText;
+        public Text InstructionsText;
 
         [Header("Generation")]
         public int PieceCount = 8;
         public int GeneratorSeed = 42;
 
+        // Exposed for HexPieceController.ComputeDragBounds
+        public Puzzle  CurrentPuzzle  { get; private set; }
+        public int[]   CurrentAnchors => _anchors;
+
         // Runtime state
         private HexPuzzleDefinition _def;
         private int[] _anchors;
         private HexPieceController[] _controllers;
-        private int _selectedIndex = 0;
         private int _movesMade = 0;
         private readonly Stack<int[]> _undoStack = new();
 
@@ -44,8 +42,8 @@ namespace Gridlocked
 
         private void Start()
         {
-            BoardRenderer.Render();
-            var board = BoardRenderer.Board;
+            if (BoardRenderer == null) BoardRenderer = GetComponent<HexBoardRenderer>();
+            var board = new HexBoard(BoardRenderer.Radius);
 
             var puzzle = GeneratePuzzle(board);
             if (puzzle == null)
@@ -54,57 +52,58 @@ namespace Gridlocked
                 return;
             }
 
-            _def = new HexPuzzleDefinition { Board = board, Puzzle = puzzle };
+            CurrentPuzzle = puzzle;
+            _def     = new HexPuzzleDefinition { Board = board, Puzzle = puzzle };
             _anchors = (int[])puzzle.StartAnchors.Clone();
+
+            // Render the board now that we know the exit mask.
+            BoardRenderer.Render(puzzle.ExitMask);
 
             // Solve + log metrics.
             var solveResult = Solver.Solve(puzzle);
             if (solveResult.Solved)
                 Debug.Log($"[HexGameManager] Puzzle solvable in {solveResult.MoveCount} moves.");
             else
-                Debug.LogWarning("[HexGameManager] Generated puzzle has no solution — regenerating.");
+                Debug.LogWarning("[HexGameManager] Generated puzzle is unsolvable.");
 
             var metrics = Analysis.Analyze(puzzle);
             Debug.Log($"[HexGameManager] States={metrics.TotalStates:N0}  " +
                       $"SolLen={metrics.SolutionLength}  Paths={metrics.ShortestPathCount:N0}  " +
                       $"Branch={metrics.BranchingAvg:F1}");
 
-            // Spawn piece GameObjects.
+            // Spawn pieces.
+            var parent = PiecesContainer != null ? PiecesContainer : transform;
             _controllers = new HexPieceController[puzzle.Pieces.Length];
             for (int i = 0; i < puzzle.Pieces.Length; i++)
             {
-                var go = Instantiate(HexPiecePrefab, PiecesContainer);
+                GameObject go;
+                if (HexPiecePrefab != null)
+                    go = Instantiate(HexPiecePrefab, parent);
+                else
+                {
+                    go = new GameObject($"Piece_{i}",
+                        typeof(RectTransform),
+                        typeof(UnityEngine.UI.Image),
+                        typeof(HexPieceController));
+                    go.transform.SetParent(parent, false);
+                }
                 go.name = $"Piece_{i}";
+
                 var ctrl = go.GetComponent<HexPieceController>();
+                if (ctrl == null) ctrl = go.AddComponent<HexPieceController>();
                 ctrl.Initialize(i, puzzle.Pieces[i], _anchors[i], BoardRenderer);
+                ctrl.OnMoveCommitted = CommitMove;
                 _controllers[i] = ctrl;
             }
 
-            _controllers[0].SetSelected(true);
-            RefreshUI();
-
             if (SolvedText != null) SolvedText.gameObject.SetActive(false);
+            if (InstructionsText != null) InstructionsText.text = "Drag pieces along their axis  |  Ctrl+Z = undo";
+            RefreshUI();
         }
 
         private void Update()
         {
             if (_def == null) return;
-
-            // Cycle selection.
-            if (Input.GetKeyDown(KeyCode.Tab))
-            {
-                _controllers[_selectedIndex].SetSelected(false);
-                _selectedIndex = (_selectedIndex + 1) % _controllers.Length;
-                _controllers[_selectedIndex].SetSelected(true);
-                RefreshUI();
-            }
-
-            // Move: Left = -1, Right = +1 along the piece's own axis.
-            int dir = 0;
-            if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)) dir = +1;
-            if (Input.GetKeyDown(KeyCode.LeftArrow)  || Input.GetKeyDown(KeyCode.A)) dir = -1;
-
-            if (dir != 0) TryMove(_selectedIndex, dir);
 
             // Undo.
             if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
@@ -114,26 +113,17 @@ namespace Gridlocked
 
         // -----------------------------------------------------------------------
 
-        private void TryMove(int pieceIdx, int dir)
+        /// <summary>Called by HexPieceController when a drag is released.</summary>
+        public void CommitMove(int pieceIdx, int newAnchor)
         {
-            var board = _def.Board;
-            var piece = _def.Puzzle.Pieces[pieceIdx];
-            ulong mask = piece.MaskAt(_anchors[pieceIdx]);
-            ulong occ = _def.Puzzle.Occupancy(_anchors);
-            ulong others = occ ^ mask;
+            if (newAnchor == _anchors[pieceIdx]) return; // no-op
 
-            if (!board.CanSlide(mask, others, piece.Axis, dir)) return;
-
-            // Push undo snapshot.
             _undoStack.Push((int[])_anchors.Clone());
-
-            _anchors[pieceIdx] += dir * board.Step[piece.Axis];
-            _controllers[pieceIdx].UpdateVisualPosition(_anchors[pieceIdx]);
+            _anchors[pieceIdx] = newAnchor;
             _movesMade++;
             RefreshUI();
 
-            if (_def.Puzzle.IsGoal(_anchors))
-                OnSolved();
+            if (CurrentPuzzle.IsGoal(_anchors)) OnSolved();
         }
 
         private void Undo()
@@ -143,8 +133,8 @@ namespace Gridlocked
             for (int i = 0; i < _controllers.Length; i++)
                 _controllers[i].UpdateVisualPosition(_anchors[i]);
             _movesMade = Mathf.Max(0, _movesMade - 1);
-            RefreshUI();
             if (SolvedText != null) SolvedText.gameObject.SetActive(false);
+            RefreshUI();
         }
 
         private void OnSolved()
@@ -160,11 +150,10 @@ namespace Gridlocked
         private void RefreshUI()
         {
             if (MoveCountText != null) MoveCountText.text = $"Moves: {_movesMade}";
-            if (SelectedText  != null) SelectedText.text  = $"Piece: {_selectedIndex} (Tab to switch)";
         }
 
         // -----------------------------------------------------------------------
-        // Puzzle generation (same logic as Gate3, fixed seed for playtest)
+        // Puzzle generation
         // -----------------------------------------------------------------------
 
         private Puzzle GeneratePuzzle(HexBoard board)

@@ -1,6 +1,7 @@
 using System;
 
-namespace Gridlocked;
+namespace Gridlocked
+{
 
 /// <summary>
 /// Hexagonal board. A hexagon of radius R lives inside a W×W rhombus (W=2R+1)
@@ -72,10 +73,10 @@ public sealed class HexBoard : Board
 
         ulong moved = Shift(piece, axis, dir);
 
-        if (System.Numerics.BitOperations.PopCount(moved) !=
-            System.Numerics.BitOperations.PopCount(piece)) return false;
+        if (PopCount(moved) != PopCount(piece)) return false;
         if ((moved & Mask) != moved) return false;
         if ((moved & others) != 0) return false;
         return true;
     }
+}
 }

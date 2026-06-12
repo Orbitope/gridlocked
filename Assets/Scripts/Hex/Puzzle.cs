@@ -2,7 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 
-namespace Gridlocked;
+namespace Gridlocked
+{
 
 /// <summary>
 /// A piece is a straight line of <see cref="Length"/> cells that slides only
@@ -90,4 +91,5 @@ public sealed class Puzzle
         for (int i = 0; i < Pieces.Length; i++) occ |= Pieces[i].MaskAt(anchors[i]);
         return occ;
     }
+}
 }

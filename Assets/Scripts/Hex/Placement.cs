@@ -1,6 +1,7 @@
 using System;
 
-namespace Gridlocked;
+namespace Gridlocked
+{
 
 /// <summary>
 /// Coordinate-based piece placement. Builds a piece's cells by walking the
@@ -31,4 +32,5 @@ public static class Placement
         mask = m;
         return true;
     }
+}
 }

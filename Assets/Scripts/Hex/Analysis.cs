@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 
-namespace Gridlocked;
+namespace Gridlocked
+{
 
 public sealed class PuzzleMetrics
 {
@@ -55,11 +56,17 @@ public static class Analysis
 
                 for (int dir = -1; dir <= 1; dir += 2)
                 {
-                    if (!board.CanSlide(mask, others, piece.Axis, dir)) continue;
+                    // Slide until blocked — each reachable position is 1 move.
+                    ulong sliding = mask;
+                    int   slideAnchor = anchors[i];
+                    while (board.CanSlide(sliding, others, piece.Axis, dir))
+                    {
+                    sliding      = board.Shift(sliding, piece.Axis, dir);
+                    slideAnchor += dir * board.Step[piece.Axis];
                     outDeg++;
 
                     var next = (int[])anchors.Clone();
-                    next[i] = anchors[i] + dir * board.Step[piece.Axis];
+                    next[i] = slideAnchor;
                     var nextKey = StateKey.Pack(next);
                     if (depth.ContainsKey(nextKey)) continue;
 
@@ -67,6 +74,7 @@ public static class Analysis
                     anchorsByKey[nextKey] = next;
                     order.Add(nextKey);
                     queue.Enqueue(nextKey);
+                    } // end while (slide)
                 }
             }
 
@@ -107,12 +115,18 @@ public static class Analysis
                 ulong others = occ ^ mask;
                 for (int dir = -1; dir <= 1; dir += 2)
                 {
-                    if (!board.CanSlide(mask, others, piece.Axis, dir)) continue;
-                    var next = (int[])anchors.Clone();
-                    next[i] = anchors[i] + dir * board.Step[piece.Axis];
-                    var nextKey = StateKey.Pack(next);
-                    if (depth[nextKey] != d + 1) continue;
-                    pathCount[nextKey] = pathCount.GetValueOrDefault(nextKey, 0) + cur;
+                    ulong sliding = mask;
+                    int   slideAnchor = anchors[i];
+                    while (board.CanSlide(sliding, others, piece.Axis, dir))
+                    {
+                        sliding      = board.Shift(sliding, piece.Axis, dir);
+                        slideAnchor += dir * board.Step[piece.Axis];
+                        var next = (int[])anchors.Clone();
+                        next[i] = slideAnchor;
+                        var nextKey = StateKey.Pack(next);
+                        if (!depth.ContainsKey(nextKey) || depth[nextKey] != d + 1) continue;
+                        pathCount[nextKey] = pathCount.GetValueOrDefault(nextKey, 0) + cur;
+                    }
                 }
             }
         }
@@ -125,4 +139,5 @@ public static class Analysis
 
         return m;
     }
+}
 }

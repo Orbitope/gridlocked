@@ -1,32 +1,46 @@
+using System;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Gridlocked
 {
     /// <summary>
-    /// Visual representation of one hex puzzle piece.
-    /// Positioned by anchor (bit index) via the board renderer's coordinate math.
-    /// Rotation matches the piece axis:
-    ///   Axis 0 (q)  →   0°
-    ///   Axis 1 (r)  →  60°
-    ///   Axis 2 (s)  → 120°
+    /// Visual + input for one hex puzzle piece.
+    /// Drag is projected onto the piece's axis direction; the piece slides
+    /// continuously during drag and snaps on release — same feel as CarController.
+    ///
+    /// Axis canvas step vectors (flat-top layout, per CellSize unit):
+    ///   Axis 0: ( 1.5,  √3/2 )   30° from horizontal
+    ///   Axis 1: ( 0,    √3   )   straight up
+    ///   Axis 2: (-1.5,  √3/2 )   150° from horizontal
+    /// All three have the same magnitude: √3 * CellSize.
     /// </summary>
-    public class HexPieceController : MonoBehaviour
+    public class HexPieceController : MonoBehaviour,
+        IPointerDownHandler, IDragHandler, IPointerUpHandler
     {
         public int PieceIndex;
         public Piece Piece;
-        public int Anchor;                      // current anchor (bit index)
-        public bool IsSelected;
-
-        [Header("References")]
+        public int Anchor;
         public HexBoardRenderer BoardRenderer;
 
-        [Header("Visuals")]
-        public UnityEngine.UI.Image Image;      // assign in prefab
+        /// <summary>Called on release with (pieceIndex, newAnchor).</summary>
+        public Action<int, int> OnMoveCommitted;
 
-        // Colours for up to 12 pieces.
+        // Drag state
+        private Vector2 _dragStartScreen;   // screen pos at pointer-down
+        private Vector2 _dragStartCanvas;   // canvas pos at pointer-down
+        private int     _dragStartAnchor;
+        private int     _dragMinDelta;      // how many steps negative are available
+        private int     _dragMaxDelta;      // how many steps positive are available
+
+        // Axis step vectors in canvas space (set once from CellSize)
+        private Vector2 _axisStep;      // full canvas vector for one cell step
+        private float   _stepMagnitude; // |_axisStep|
+
+        // Colours
         private static readonly Color[] PieceColors =
         {
-            new Color(0.93f, 0.27f, 0.27f), // 0 target — red
+            new Color(0.93f, 0.27f, 0.27f),
             new Color(0.27f, 0.53f, 0.93f),
             new Color(0.27f, 0.83f, 0.47f),
             new Color(0.93f, 0.73f, 0.27f),
@@ -40,7 +54,16 @@ namespace Gridlocked
             new Color(0.27f, 0.47f, 0.67f),
         };
 
-        private static readonly float[] AxisAngles = { 0f, 60f, 120f };
+        // Flat-top hex axis directions (unit CellSize).
+        // Multiply by CellSize to get the canvas-space step vector per cell.
+        private static readonly Vector2[] AxisUnitStep =
+        {
+            new Vector2( 1.5f,       Mathf.Sqrt(3f) / 2f),  // axis 0
+            new Vector2( 0f,         Mathf.Sqrt(3f)),         // axis 1
+            new Vector2(-1.5f,       Mathf.Sqrt(3f) / 2f),   // axis 2
+        };
+
+        // -----------------------------------------------------------------------
 
         public void Initialize(int pieceIndex, Piece piece, int startAnchor, HexBoardRenderer renderer)
         {
@@ -49,11 +72,20 @@ namespace Gridlocked
             Anchor = startAnchor;
             BoardRenderer = renderer;
 
-            if (Image != null)
-                Image.color = PieceColors[pieceIndex % PieceColors.Length];
+            float cs = BoardRenderer.CellSize;
+            _axisStep      = AxisUnitStep[piece.Axis] * cs;
+            _stepMagnitude = _axisStep.magnitude; // = √3 * CellSize for all axes
+
+            var img = GetComponent<UnityEngine.UI.Image>();
+            if (img != null)
+                img.color = PieceColors[pieceIndex % PieceColors.Length];
 
             UpdateVisualPosition(startAnchor);
         }
+
+        // -----------------------------------------------------------------------
+        // Visual positioning
+        // -----------------------------------------------------------------------
 
         public void UpdateVisualPosition(int anchor)
         {
@@ -62,7 +94,6 @@ namespace Gridlocked
             var (q0, r0) = BoardRenderer.AnchorToAxial(anchor);
             var (dq, dr) = board.Deltas[Piece.Axis];
 
-            // Average position of all cells this piece occupies.
             float sumX = 0f, sumY = 0f;
             for (int k = 0; k < Piece.Length; k++)
             {
@@ -70,29 +101,138 @@ namespace Gridlocked
                 sumX += pos.x;
                 sumY += pos.y;
             }
-            var centre = new Vector2(sumX / Piece.Length, sumY / Piece.Length);
+
+            var canvasPos = new Vector2(sumX / Piece.Length, sumY / Piece.Length)
+                            - BoardRenderer.BoardCentre;
+
+            SetCanvasPosition(canvasPos);
+
+            transform.localRotation = Quaternion.Euler(0f, 0f,
+                Piece.Axis == 0 ? 30f : Piece.Axis == 1 ? 90f : 150f);
 
             var rt = GetComponent<RectTransform>();
-            if (rt != null) rt.anchoredPosition = centre;
-            else transform.localPosition = new Vector3(centre.x, centre.y, 0f);
-
-            // Rotate to match axis.
-            transform.localRotation = Quaternion.Euler(0f, 0f, AxisAngles[Piece.Axis]);
-
-            // Width scales with piece length; height = one cell.
             if (rt != null)
                 rt.sizeDelta = new Vector2(
-                    BoardRenderer.CellSize * Piece.Length * 0.9f,
-                    BoardRenderer.CellSize * 0.72f);
+                    BoardRenderer.CellSize * Piece.Length * 0.85f,
+                    BoardRenderer.CellSize * 0.68f);
+        }
+
+        private void SetCanvasPosition(Vector2 pos)
+        {
+            var rt = GetComponent<RectTransform>();
+            if (rt != null) rt.anchoredPosition = pos;
+            else transform.localPosition = new Vector3(pos.x, pos.y, 0f);
+        }
+
+        // -----------------------------------------------------------------------
+        // Drag input
+        // -----------------------------------------------------------------------
+
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            _dragStartScreen = eventData.position;
+            _dragStartAnchor = Anchor;
+            _dragStartCanvas = GetComponent<RectTransform>()?.anchoredPosition ?? Vector2.zero;
+
+            // Compute how many steps are free in each direction.
+            ComputeDragBounds(out _dragMinDelta, out _dragMaxDelta);
+
+            transform.localScale = Vector3.one * 1.05f;
+        }
+
+        public void OnDrag(PointerEventData eventData)
+        {
+            Vector2 screenDelta = eventData.position - _dragStartScreen;
+
+            // Convert screen delta to canvas delta (account for canvas scale).
+            // RectTransformUtility handles this correctly even at non-1:1 scale.
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                GetComponentInParent<Canvas>().GetComponent<RectTransform>(),
+                eventData.position,
+                eventData.pressEventCamera,
+                out Vector2 currentCanvas);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                GetComponentInParent<Canvas>().GetComponent<RectTransform>(),
+                _dragStartScreen,
+                eventData.pressEventCamera,
+                out Vector2 startCanvas);
+            Vector2 canvasDelta = currentCanvas - startCanvas;
+
+            // Project onto axis direction.
+            float projection = Vector2.Dot(canvasDelta, _axisStep.normalized);
+            float gridDelta  = projection / _stepMagnitude;
+
+            // Clamp to available space.
+            float clampedDelta = Mathf.Clamp(gridDelta, _dragMinDelta, _dragMaxDelta);
+
+            // Move visually (smooth, not snapped yet).
+            SetCanvasPosition(_dragStartCanvas + _axisStep * clampedDelta);
+        }
+
+        public void OnPointerUp(PointerEventData eventData)
+        {
+            transform.localScale = Vector3.one;
+
+            // Snap: project current canvas offset onto axis, round to nearest cell.
+            var rt = GetComponent<RectTransform>();
+            Vector2 currentCanvas = rt != null ? rt.anchoredPosition : Vector2.zero;
+            Vector2 offset = currentCanvas - _dragStartCanvas;
+            float projection = Vector2.Dot(offset, _axisStep.normalized);
+            int snapDelta = Mathf.RoundToInt(projection / _stepMagnitude);
+            snapDelta = Mathf.Clamp(snapDelta, _dragMinDelta, _dragMaxDelta);
+
+            int newAnchor = _dragStartAnchor + snapDelta * BoardRenderer.Board.Step[Piece.Axis];
+            Anchor = newAnchor;
+            UpdateVisualPosition(newAnchor); // snap visual to grid
+            OnMoveCommitted?.Invoke(PieceIndex, newAnchor);
+        }
+
+        // -----------------------------------------------------------------------
+
+        private void ComputeDragBounds(out int minDelta, out int maxDelta)
+        {
+            var board   = BoardRenderer.Board;
+            var puzzle  = FindAnyObjectByType<HexGameManager>()?.CurrentPuzzle;
+            var anchors = FindAnyObjectByType<HexGameManager>()?.CurrentAnchors;
+
+            minDelta = 0;
+            maxDelta = 0;
+
+            if (puzzle == null || anchors == null) return;
+
+            ulong occ    = puzzle.Occupancy(anchors);
+            ulong myMask = Piece.MaskAt(Anchor);
+            ulong others = occ ^ myMask;
+
+            // Positive direction.
+            ulong cur = myMask;
+            int a = Anchor;
+            for (int i = 1; i <= board.W * 2; i++)
+            {
+                if (!board.CanSlide(cur, others, Piece.Axis, +1)) break;
+                cur = board.Shift(cur, Piece.Axis, +1);
+                a  += board.Step[Piece.Axis];
+                maxDelta = i;
+            }
+
+            // Negative direction.
+            cur = myMask;
+            a   = Anchor;
+            for (int i = 1; i <= board.W * 2; i++)
+            {
+                if (!board.CanSlide(cur, others, Piece.Axis, -1)) break;
+                cur = board.Shift(cur, Piece.Axis, -1);
+                a  -= board.Step[Piece.Axis];
+                minDelta = -i;
+            }
         }
 
         public void SetSelected(bool selected)
         {
-            IsSelected = selected;
-            if (Image != null)
-                Image.color = selected
-                    ? Color.Lerp(PieceColors[PieceIndex % PieceColors.Length], Color.white, 0.4f)
-                    : PieceColors[PieceIndex % PieceColors.Length];
+            var img = GetComponent<UnityEngine.UI.Image>();
+            if (img == null) return;
+            var baseColor = PieceColors[PieceIndex % PieceColors.Length];
+            img.color = selected ? Color.Lerp(baseColor, Color.white, 0.4f) : baseColor;
         }
     }
 }

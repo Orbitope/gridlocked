@@ -1,8 +1,9 @@
 using System;
-using System.Numerics;
+// System.Numerics.BitOperations not available in Unity — using manual implementations below
 using System.Text;
 
-namespace Gridlocked;
+namespace Gridlocked
+{
 
 /// <summary>
 /// Abstract board shared by the hex and square variants so the solver,
@@ -25,7 +26,7 @@ public abstract class Board
 
     public int Idx(int q, int r) => r * W + q;
     public ulong Bit(int q, int r) => 1UL << Idx(q, r);
-    public int CellCount => BitOperations.PopCount(Mask);
+    public int CellCount => PopCount(Mask);
 
     public ulong Shift(ulong piece, int axis, int dir)
         => dir > 0 ? piece << Step[axis] : piece >> Step[axis];
@@ -45,7 +46,7 @@ public abstract class Board
         ulong bits = piece;
         while (bits != 0)
         {
-            int idx = BitOperations.TrailingZeroCount(bits);
+            int idx = TrailingZeroCount(bits);
             bits &= bits - 1;
             int q = idx % W, r = idx / W;
             int nq = q + dq, nr = r + dr;
@@ -53,6 +54,23 @@ public abstract class Board
             moved |= Bit(nq, nr);
         }
         return (moved & others) == 0;
+    }
+
+    // Unity-compatible replacements for System.Numerics.BitOperations
+    protected static int PopCount(ulong v)
+    {
+        v -= (v >> 1) & 0x5555555555555555UL;
+        v  = (v & 0x3333333333333333UL) + ((v >> 2) & 0x3333333333333333UL);
+        v  = (v + (v >> 4)) & 0x0F0F0F0F0F0F0F0FUL;
+        return (int)((v * 0x0101010101010101UL) >> 56);
+    }
+
+    protected static int TrailingZeroCount(ulong v)
+    {
+        if (v == 0) return 64;
+        int c = 0;
+        while ((v & 1) == 0) { v >>= 1; c++; }
+        return c;
     }
 
     public virtual string Render(ulong occ = 0)
@@ -70,4 +88,5 @@ public abstract class Board
         }
         return sb.ToString();
     }
+}
 }
