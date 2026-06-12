@@ -44,8 +44,40 @@ namespace Gridlocked
         private void Start()
         {
             if (BoardRenderer == null) BoardRenderer = GetComponent<HexBoardRenderer>();
-            var board = new HexBoard(BoardRenderer.Radius);
+            SetupUI();
+            BuildPuzzle();
+        }
 
+        private void Update()
+        {
+            // New puzzle (R) — randomize seed and rebuild.
+            if (Input.GetKeyDown(KeyCode.R))
+            {
+                GeneratorSeed = Random.Range(1, int.MaxValue);
+                BuildPuzzle();
+                return;
+            }
+
+            if (_def == null) return;
+
+            // Undo.
+            if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+                && Input.GetKeyDown(KeyCode.Z))
+                Undo();
+        }
+
+        /// <summary>Generates a puzzle from the current seed, (re)rendering board + pieces.</summary>
+        private void BuildPuzzle()
+        {
+            // Clear any previous board + pieces.
+            BoardRenderer.Clear();
+            if (_controllers != null)
+                foreach (var c in _controllers)
+                    if (c != null) Destroy(c.gameObject);
+            _undoStack.Clear();
+            _movesMade = 0;
+
+            var board = new HexBoard(BoardRenderer.Radius);
             var puzzle = GeneratePuzzle(board);
             if (puzzle == null)
             {
@@ -57,22 +89,17 @@ namespace Gridlocked
             _def     = new HexPuzzleDefinition { Board = board, Puzzle = puzzle };
             _anchors = (int[])puzzle.StartAnchors.Clone();
 
-            // Render the board now that we know the exit mask.
             BoardRenderer.Render(puzzle.ExitMask);
 
-            // Solve + log metrics.
             var solveResult = Solver.Solve(puzzle);
             if (solveResult.Solved)
-                Debug.Log($"[HexGameManager] Puzzle solvable in {solveResult.MoveCount} moves.");
-            else
-                Debug.LogWarning("[HexGameManager] Generated puzzle is unsolvable.");
+                Debug.Log($"[HexGameManager] New puzzle (seed {GeneratorSeed}) — solvable in {solveResult.MoveCount} moves.");
 
             var metrics = Analysis.Analyze(puzzle);
             Debug.Log($"[HexGameManager] States={metrics.TotalStates:N0}  " +
                       $"SolLen={metrics.SolutionLength}  Paths={metrics.ShortestPathCount:N0}  " +
                       $"Branch={metrics.BranchingAvg:F1}");
 
-            // Spawn pieces.
             var parent = PiecesContainer != null ? PiecesContainer : transform;
             _controllers = new HexPieceController[puzzle.Pieces.Length];
             for (int i = 0; i < puzzle.Pieces.Length; i++)
@@ -97,6 +124,13 @@ namespace Gridlocked
                 _controllers[i] = ctrl;
             }
 
+            if (SolvedText != null) SolvedText.gameObject.SetActive(false);
+            RefreshUI();
+        }
+
+        /// <summary>One-time UI text styling + positioning.</summary>
+        private void SetupUI()
+        {
             if (SolvedText != null)
             {
                 SolvedText.gameObject.SetActive(false);
@@ -114,24 +148,13 @@ namespace Gridlocked
             }
             if (InstructionsText != null)
             {
-                InstructionsText.text  = "Drag pieces along their axis  |  Ctrl+Z = undo";
+                InstructionsText.text  = "Drag pieces along their axis  |  Ctrl+Z = undo  |  R = new puzzle";
                 InstructionsText.color = new Color32(0x6A,0x63,0x58,255);
                 InstructionsText.fontSize = 18;
                 PositionRect(InstructionsText.GetComponent<RectTransform>(),
                     0f, -Screen.height * 0.5f + 20f, 700f, 36f,
                     new Vector2(0.5f, 0f));
             }
-            RefreshUI();
-        }
-
-        private void Update()
-        {
-            if (_def == null) return;
-
-            // Undo.
-            if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
-                && Input.GetKeyDown(KeyCode.Z))
-                Undo();
         }
 
         // -----------------------------------------------------------------------

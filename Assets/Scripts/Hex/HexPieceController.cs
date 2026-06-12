@@ -38,23 +38,17 @@ namespace Gridlocked
         private Vector2 _axisStep;      // full canvas vector for one cell step
         private float   _stepMagnitude; // |_axisStep|
 
-        // Palette B colors — index 0 is always Coral (the ONE target piece per scene rule).
-        // Remaining slots cycle through data-series in priority order.
-        private static readonly Color[] PieceColors =
+        /// <summary>
+        /// Piece 0 (target) is always Coral. Every other piece gets a unique,
+        /// evenly-spread hue via the golden-angle sequence at muted S/V — no two
+        /// pieces ever share a color, regardless of piece count.
+        /// </summary>
+        private static Color BaseColor(int index)
         {
-            new Color32(0xFF,0x5E,0x3A,255),           // 0 — target
-            new Color32(0x6B,0x7A,0x8D,255),   // Steel
-            new Color32(0x7D,0x9A,0x6A,255),   // Sage
-            new Color32(0x9A,0x7A,0xB0,255),   // Mauve
-            new Color32(0xC4,0x7A,0x5A,255),   // Terra
-            new Color32(0xC4,0x9A,0x3C,255),   // Amber
-            new Color32(0x6B,0x7A,0x8D,255),   // Steel (repeat)
-            new Color32(0x7D,0x9A,0x6A,255),   // Sage
-            new Color32(0x9A,0x7A,0xB0,255),   // Mauve
-            new Color32(0xC4,0x7A,0x5A,255),   // Terra
-            new Color32(0xC4,0x9A,0x3C,255),   // Amber
-            new Color32(0x6B,0x7A,0x8D,255),   // Steel
-        };
+            if (index == 0) return new Color32(0xFF, 0x5E, 0x3A, 255); // Coral
+            float hue = Mathf.Repeat(0.07f + index * 0.61803398875f, 1f);
+            return Color.HSVToRGB(hue, 0.40f, 0.74f);
+        }
 
         // Flat-top hex axis directions (unit CellSize).
         // Multiply by CellSize to get the canvas-space step vector per cell.
@@ -80,7 +74,7 @@ namespace Gridlocked
 
             var img = GetComponent<UnityEngine.UI.Image>();
             if (img != null)
-                img.color = PieceColors[pieceIndex % PieceColors.Length];
+                img.color = BaseColor(pieceIndex);
 
             UpdateVisualPosition(startAnchor);
         }
@@ -233,7 +227,7 @@ namespace Gridlocked
         {
             var img = GetComponent<UnityEngine.UI.Image>();
             if (img == null) return;
-            var baseColor = PieceColors[PieceIndex % PieceColors.Length];
+            var baseColor = BaseColor(PieceIndex);
             img.color = selected ? Color.Lerp(baseColor, new Color32(0xE8,0xC0,0x68,255), 0.45f) : baseColor;
         }
     }

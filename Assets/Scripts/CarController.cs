@@ -35,15 +35,20 @@ public class CarController : MonoBehaviour, IPointerDownHandler, IDragHandler, I
         // Assuming unit size is 100 pixels in canvas
         _rectTransform.sizeDelta = new Vector2(carWidth * 100, carHeight * 100);
 
-        // Color goal car red
+        // Goal car is Coral (one Coral element per scene). Other cars get
+        // distinct, evenly-distributed hues via the golden-angle sequence so
+        // no two cars ever share a color, at muted S/V to match Palette B's mood.
+        var img = GetComponent<UnityEngine.UI.Image>();
         if (carIndex == BitboardSolver.GOAL_CAR_INDEX)
         {
-            GetComponent<UnityEngine.UI.Image>().color = new Color(0.9f, 0.2f, 0.2f);
+            img.color = new Color32(0xFF, 0x5E, 0x3A, 255); // Coral
         }
         else
         {
-            // Random distinct colors
-            GetComponent<UnityEngine.UI.Image>().color = Random.ColorHSV(0f, 1f, 0.5f, 0.8f, 0.8f, 1f);
+            // Golden-angle hue stepping (0.618...) spreads hues maximally.
+            // Offset 0.07 steers the first hue away from coral's red.
+            float hue = Mathf.Repeat(0.07f + carIndex * 0.61803398875f, 1f);
+            img.color = Color.HSVToRGB(hue, 0.40f, 0.74f);
         }
     }
 
