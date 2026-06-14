@@ -99,7 +99,8 @@ namespace Gridlocked
             }
 
             var canvasPos = new Vector2(sumX / Piece.Length, sumY / Piece.Length)
-                            - BoardRenderer.BoardCentre;
+                            - BoardRenderer.BoardCentre
+                            + BoardRenderer.CentreShift; // shift up to clear HUD
 
             SetCanvasPosition(canvasPos);
 
@@ -178,6 +179,19 @@ namespace Gridlocked
             snapDelta = Mathf.Clamp(snapDelta, _dragMinDelta, _dragMaxDelta);
 
             int newAnchor = _dragStartAnchor + snapDelta * BoardRenderer.Board.Step[Piece.Axis];
+
+            // SFX: slide if the piece moved; thock if it was shoved against a
+            // bound (player dragged past the available space).
+            if (AudioManager.Instance != null)
+            {
+                float rawDelta = projection / _stepMagnitude;
+                if (snapDelta != 0)
+                    AudioManager.Instance.PlaySlide(
+                        Mathf.Clamp(1.1f - Mathf.Abs(snapDelta) * 0.05f, 0.85f, 1.1f));
+                else if (Mathf.Abs(rawDelta) > 0.5f)
+                    AudioManager.Instance.PlayThock();
+            }
+
             Anchor = newAnchor;
             UpdateVisualPosition(newAnchor); // snap visual to grid
             OnMoveCommitted?.Invoke(PieceIndex, newAnchor);
@@ -229,6 +243,26 @@ namespace Gridlocked
             if (img == null) return;
             var baseColor = BaseColor(PieceIndex);
             img.color = selected ? Color.Lerp(baseColor, new Color32(0xE8,0xC0,0x68,255), 0.45f) : baseColor;
+        }
+
+        /// <summary>Blink the piece amber twice to signal the suggested move.</summary>
+        public void FlashHint() => StartCoroutine(FlashRoutine());
+
+        private System.Collections.IEnumerator FlashRoutine()
+        {
+            var img = GetComponent<UnityEngine.UI.Image>();
+            if (img == null) yield break;
+
+            Color baseColor = BaseColor(PieceIndex);
+            Color flash = new Color32(0xE8, 0xC0, 0x68, 255); // AmberBright
+
+            for (int i = 0; i < 2; i++)
+            {
+                img.color = flash;
+                yield return new UnityEngine.WaitForSeconds(0.18f);
+                img.color = baseColor;
+                yield return new UnityEngine.WaitForSeconds(0.12f);
+            }
         }
     }
 }

@@ -72,6 +72,61 @@ Track hypotheses here as they form. Mark each as Supported / Refuted / Inconclus
 
 ---
 
+## Visualization & analysis approaches
+
+*The raw state-space graph is the wrong primitive. A force/depth layout of 10k–80k
+nodes is a hairball — it shows that the space is big, but "big" isn't the thesis.
+The thesis is deception, bottlenecks, and the shape that makes a puzzle feel
+designed. These views encode those directly. All are computable from the existing
+adjacency + BFS depths in `Analysis.cs` / `PuzzleMetricsLogger.cs`.*
+
+### 1. Mobility / progress profile along the solution path  ★ primary
+Walk the optimal path; at each step plot two curves:
+- **Mobility** = legal moves available (or # of pieces that can move)
+- **Productive** = how many of those moves *reduce* distance-to-goal
+
+A ~15-point, 2-line chart. The gap between the curves **is** deception — steps with
+many moves but few productive ones are the "feels hard but is short" beats. A
+bottleneck shows as mobility collapsing to 1–2 then re-opening. Encodes **H1**
+(deception) and **H2** (aha moment) on one screen. This is the per-puzzle "fun
+signature."
+
+### 2. Pruned solution subgraph / k-shortest paths  ★ primary
+Keep the graph form but filter for legibility:
+- **Solution DAG**: edges where `depth[v] == depth[u]+1` AND both endpoints are
+  forward-reachable from start ∩ backward-reachable from goal. Often 100s of nodes
+  vs 80k.
+- **k-shortest distinct paths**: render the top-k optimal/near-optimal routes
+  (shortest-path count already computed via BFS-DAG DP).
+- **Optimal+slack ball**: states reachable to goal within `optimal + N` moves
+  (reuses the reverse-reachability from the dead-end metric).
+
+The faithful "it's still a graph" view, small enough to actually read. Shows
+solution multiplicity → **H3**.
+
+### 3. Distance-to-goal reachability profile  ★ free
+Bar/line of "states at each distance from goal" (already have `depthDistribution`).
+Long thin neck vs fat blob looks completely different → difficulty-tier shape (**H4**).
+
+### 4. Coarsened skeleton via bottlenecks  ◦ stretch
+Contract dense regions between articulation/bottleneck nodes into super-nodes;
+render a ~10–20 node skeleton of clusters joined by bridges. Literally a picture of
+**H3** ("one clear bottleneck = designed feeling") — the puzzle's "chapters."
+Needs articulation-point detection + contraction.
+
+### 5. Dimensionality reduction (UMAP/PCA)  ◦ hero image only
+Each state = car-position vector; embed to 2D, color by distance-to-goal. Pretty
+"landscape" of basins/clusters. **Caveat:** DR distorts edges and implies adjacency
+that isn't there — eye-candy for a title shot, not evidence. UMAP > t-SNE (global
+structure); PCA is honest but usually too blobby.
+
+**Recommendation:** build #1 + #2 + #3 (carry the whole argument); save #4/#5 as
+stretch/hero visuals. The deeper finding: plot these signatures across many puzzles
+and check whether *fun-rated* ones cluster (e.g. a single sharp mobility trough) —
+turns the visuals from illustration into an actual result.
+
+---
+
 ## Video narrative notes
 
 *Observations that feel like good story beats. Copy to the narrative brief when ready.*

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:editor="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
+>
+    <!-- Palette B — Void bg, Amber primary, Steel secondary -->
+    <ui:VisualElement name="main-menu" style="flex-grow: 1; align-items: center; justify-content: center; background-color: #111009;">
+        <ui:Label text="Gridlocked" style="font-size: 96px; color: #EDE8DC; -unity-font-style: bold; margin-bottom: 12px;" />
+        <ui:Label text="A sliding-block puzzle" style="font-size: 28px; color: #9A9484; margin-bottom: 80px;" />
+
+        <ui:Button name="play-square-btn" text="Square Puzzles" style="width: 520px; height: 96px; font-size: 38px; margin-bottom: 28px; background-color: #C49A3C; color: #111009; border-radius: 12px; border-width: 0;" />
+        <ui:Button name="play-hex-btn" text="Hex Puzzles" style="width: 520px; height: 96px; font-size: 38px; background-color: #6B7A8D; color: #EDE8DC; border-radius: 12px; border-width: 0;" />
+
+        <ui:Button name="play-aggregate-btn" text="Aggregate Analysis" style="width: 320px; height: 56px; font-size: 22px; margin-top: 48px; background-color: #2C2A22; color: #9A9484; border-radius: 10px; border-width: 1px; border-color: #3D3A30;" />
+
+        <ui:Label text="Tri-axis hex is experimental" style="font-size: 20px; color: #6A6358; margin-top: 24px;" />
+    </ui:VisualElement>
+</ui:UXML>

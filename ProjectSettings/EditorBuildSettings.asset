@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/MainMenu.unity
+    guid: ea003b731c6b14f70a06ea9730dfca38
+  - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 2cda990e2423bbf4892e6590ba056729
   - enabled: 1
@@ -14,5 +17,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/HexScene.unity
     guid: 1fce9931dbf4b4c09ab4924b9933efc7
+  - enabled: 1
+    path: Assets/Scenes/AggregateScene.unity
+    guid: 2496605a588b24171ba710f3a0cdc6c5
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

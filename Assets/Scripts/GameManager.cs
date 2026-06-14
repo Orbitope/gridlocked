@@ -36,6 +36,13 @@ public class GameManager : MonoBehaviour
     public LevelData? CurrentLevelData;
     public int CurrentMoveCount => UndoStack.Count;
 
+    // Stable ID for the currently-loaded puzzle (start state), used to join
+    // graph metrics with satisfaction ratings. Set on every puzzle load.
+    private ulong _initialStateData;
+    public string PuzzleId => CurrentLevelData.HasValue
+        ? $"level_{CurrentLevelData.Value.ID}"
+        : _initialStateData.ToString();
+
     private void Start()
     {
         GenerateGrid();
@@ -85,6 +92,7 @@ public class GameManager : MonoBehaviour
         CurrentLevelData = level;
         Def = level.GetDefinition();
         CurrentState = new PuzzleState(level.InitialStateData);
+        _initialStateData = CurrentState.Data;
         SpawnCars();
     }
 
@@ -106,6 +114,7 @@ public class GameManager : MonoBehaviour
         {
             Def = def;
             CurrentState = state;
+            _initialStateData = CurrentState.Data;
             SpawnCars();
         }
         else
@@ -157,21 +166,103 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    private int _victoryMoves;
+    private int _victoryOptimal;
+
     private void HandleVictory()
     {
         Debug.Log("Puzzle Solved!");
-        if (CurrentLevelData.HasValue)
-        {
-            SaveManager.RecordVictory(CurrentLevelData.Value.ID, CurrentMoveCount);
-            Debug.Log($"Level Complete! Your Moves: {CurrentMoveCount} | Optimal: {CurrentLevelData.Value.OptimalMoves}");
-        }
-        else
-        {
-            Debug.Log($"Random Puzzle Complete! Your Moves: {CurrentMoveCount}");
-        }
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySuccess();
 
-        // Delay loading next
-        Invoke("LoadNewPuzzle", 1.5f);
+        _victoryMoves   = CurrentMoveCount;
+        _victoryOptimal = CurrentLevelData.HasValue ? CurrentLevelData.Value.OptimalMoves : -1;
+
+        if (CurrentLevelData.HasValue)
+            SaveManager.RecordVictory(CurrentLevelData.Value.ID, CurrentMoveCount);
+
+        // Capture a 1–5 satisfaction rating before advancing. The overlay's
+        // callback records the rating and loads the next puzzle.
+        ShowRatingPrompt();
+    }
+
+    // ---- Satisfaction rating overlay (research data capture) ----
+
+    private GameObject _ratingOverlay;
+
+    private void ShowRatingPrompt()
+    {
+        if (_ratingOverlay != null) Destroy(_ratingOverlay);
+
+        _ratingOverlay = new GameObject("RatingOverlay",
+            typeof(Canvas), typeof(UnityEngine.UI.CanvasScaler),
+            typeof(UnityEngine.UI.GraphicRaycaster));
+        var canvas = _ratingOverlay.GetComponent<Canvas>();
+        canvas.renderMode  = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 100;
+
+        // Dim backdrop
+        var bg = new GameObject("BG", typeof(UnityEngine.UI.Image));
+        bg.transform.SetParent(_ratingOverlay.transform, false);
+        var bgRt = bg.GetComponent<RectTransform>();
+        bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
+        bgRt.offsetMin = bgRt.offsetMax = Vector2.zero;
+        bg.GetComponent<UnityEngine.UI.Image>().color = new Color32(0x11, 0x10, 0x09, 220);
+
+        // Prompt label
+        var label = new GameObject("Prompt", typeof(UnityEngine.UI.Text));
+        label.transform.SetParent(_ratingOverlay.transform, false);
+        var lrt = label.GetComponent<RectTransform>();
+        lrt.anchorMin = new Vector2(0.5f, 0.5f); lrt.anchorMax = new Vector2(0.5f, 0.5f);
+        lrt.anchoredPosition = new Vector2(0, 90); lrt.sizeDelta = new Vector2(700, 80);
+        var ltxt = label.GetComponent<UnityEngine.UI.Text>();
+        ltxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        ltxt.fontSize = 36; ltxt.alignment = TextAnchor.MiddleCenter;
+        ltxt.color = new Color32(0xED, 0xE8, 0xDC, 255);
+        ltxt.text = $"Solved in {_victoryMoves} moves!\nHow satisfying was it?";
+
+        // 1–5 buttons
+        for (int i = 1; i <= 5; i++)
+        {
+            int rating = i;
+            var btn = new GameObject($"Rate{i}",
+                typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.Button));
+            btn.transform.SetParent(_ratingOverlay.transform, false);
+            var rt = btn.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0.5f); rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(90, 90);
+            rt.anchoredPosition = new Vector2((i - 3) * 110, -30);
+            btn.GetComponent<UnityEngine.UI.Image>().color = new Color32(0x2C, 0x2A, 0x22, 255);
+            btn.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(() => SubmitRating(rating));
+
+            var t = new GameObject("n", typeof(UnityEngine.UI.Text));
+            t.transform.SetParent(btn.transform, false);
+            var trt = t.GetComponent<RectTransform>();
+            trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one;
+            trt.offsetMin = trt.offsetMax = Vector2.zero;
+            var tt = t.GetComponent<UnityEngine.UI.Text>();
+            tt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            tt.fontSize = 40; tt.alignment = TextAnchor.MiddleCenter;
+            tt.color = new Color32(0xC4, 0x9A, 0x3C, 255);
+            tt.text = i.ToString();
+        }
+    }
+
+    private void Update()
+    {
+        // Number keys 1–5 as a shortcut while the rating overlay is up.
+        if (_ratingOverlay != null)
+        {
+            for (int i = 1; i <= 5; i++)
+                if (Input.GetKeyDown(KeyCode.Alpha0 + i)) { SubmitRating(i); break; }
+        }
+    }
+
+    private void SubmitRating(int rating)
+    {
+        RatingsCsv.Append(PuzzleId, rating, _victoryMoves, _victoryOptimal);
+        Debug.Log($"[GameManager] Rated {rating}/5 (puzzle {PuzzleId}).");
+        if (_ratingOverlay != null) { Destroy(_ratingOverlay); _ratingOverlay = null; }
+        Invoke("LoadNewPuzzle", 0.3f);
     }
 
     public void UndoMove()

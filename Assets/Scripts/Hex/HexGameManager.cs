@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.UIElements;
 
 namespace Gridlocked
 {
@@ -22,7 +24,8 @@ namespace Gridlocked
         [Header("UI")]
         public Text SolvedText;
         public Text MoveCountText;
-        public Text InstructionsText;
+        [HideInInspector] public Text InstructionsText; // hidden — button bar replaces keyboard hints
+        public UIDocument HudDocument;
 
         [Header("Generation")]
         public int PieceCount = 8;
@@ -37,6 +40,7 @@ namespace Gridlocked
         private int[] _anchors;
         private HexPieceController[] _controllers;
         private int _movesMade = 0;
+        private int _optimalMoves = -1;
         private readonly Stack<int[]> _undoStack = new();
 
         // -----------------------------------------------------------------------
@@ -50,6 +54,13 @@ namespace Gridlocked
 
         private void Update()
         {
+            // Back to main menu.
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                SceneManager.LoadScene("MainMenu");
+                return;
+            }
+
             // New puzzle (R) — randomize seed and rebuild.
             if (Input.GetKeyDown(KeyCode.R))
             {
@@ -92,6 +103,7 @@ namespace Gridlocked
             BoardRenderer.Render(puzzle.ExitMask);
 
             var solveResult = Solver.Solve(puzzle);
+            _optimalMoves = solveResult.Solved ? solveResult.MoveCount : -1;
             if (solveResult.Solved)
                 Debug.Log($"[HexGameManager] New puzzle (seed {GeneratorSeed}) — solvable in {solveResult.MoveCount} moves.");
 
@@ -140,21 +152,40 @@ namespace Gridlocked
             }
             if (MoveCountText != null)
             {
-                MoveCountText.color = new Color32(0x9A,0x94,0x84,255);
-                MoveCountText.fontSize = 24;
+                // Centered at top in TextBright — clean, readable, not crowding the board.
+                MoveCountText.color = new Color32(0xC8,0xC0,0xAE,255); // TextPrimary
+                MoveCountText.fontSize = 28;
+                MoveCountText.alignment = TextAnchor.MiddleCenter;
                 PositionRect(MoveCountText.GetComponent<RectTransform>(),
-                    -Screen.width * 0.5f + 20f, Screen.height * 0.5f - 20f, 200f, 40f,
-                    new Vector2(0f, 1f));
+                    0f, Screen.height * 0.5f - 30f, 300f, 44f,
+                    new Vector2(0.5f, 1f));
             }
-            if (InstructionsText != null)
+            // InstructionsText and SelectedText removed — the button bar covers
+            // Menu/Undo/Hint/Restart/New; keyboard shortcuts are secondary/discoverable.
+            if (InstructionsText != null) InstructionsText.gameObject.SetActive(false);
+
+            WireHud();
+        }
+
+        /// <summary>Wire the UIDocument button bar (Menu / Undo / Hint / Restart / New).</summary>
+        private void WireHud()
+        {
+            if (HudDocument == null) HudDocument = FindAnyObjectByType<UIDocument>();
+            if (HudDocument == null) return;
+            var root = HudDocument.rootVisualElement;
+            if (root == null) return;
+
+            void Wire(string name, System.Action cb)
             {
-                InstructionsText.text  = "Drag pieces along their axis  |  Ctrl+Z = undo  |  R = new puzzle";
-                InstructionsText.color = new Color32(0x6A,0x63,0x58,255);
-                InstructionsText.fontSize = 18;
-                PositionRect(InstructionsText.GetComponent<RectTransform>(),
-                    0f, -Screen.height * 0.5f + 20f, 700f, 36f,
-                    new Vector2(0.5f, 0f));
+                var btn = root.Q<UnityEngine.UIElements.Button>(name);
+                if (btn != null) btn.clicked += cb;
             }
+
+            Wire("hex-menu-btn",    () => SceneManager.LoadScene("MainMenu"));
+            Wire("hex-undo-btn",    Undo);
+            Wire("hex-hint-btn",    ShowHint);
+            Wire("hex-restart-btn", RestartPuzzle);
+            Wire("hex-new-btn",     () => { GeneratorSeed = Random.Range(1, int.MaxValue); BuildPuzzle(); });
         }
 
         // -----------------------------------------------------------------------
@@ -186,11 +217,48 @@ namespace Gridlocked
         private void OnSolved()
         {
             Debug.Log($"[HexGameManager] Solved in {_movesMade} moves!");
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySuccess();
             if (SolvedText != null)
             {
-                SolvedText.text = $"Solved in {_movesMade} moves!";
+                SolvedText.text = _optimalMoves > 0
+                    ? $"Solved in {_movesMade} moves  (optimal: {_optimalMoves})"
+                    : $"Solved in {_movesMade} moves!";
                 SolvedText.gameObject.SetActive(true);
             }
+        }
+
+        /// <summary>Solve from the current state and flash the piece that should move next.</summary>
+        public void ShowHint()
+        {
+            if (CurrentPuzzle == null || _controllers == null) return;
+
+            var probe = new Puzzle(_def.Board, CurrentPuzzle.Pieces, _anchors,
+                                   CurrentPuzzle.TargetIndex, CurrentPuzzle.ExitMask);
+            var res = Solver.Solve(probe);
+            if (!res.Solved || res.Path == null || res.Path.Count < 2) return;
+
+            int[] next = res.Path[1].Unpack(_anchors.Length);
+            for (int i = 0; i < _anchors.Length; i++)
+            {
+                if (_anchors[i] != next[i])
+                {
+                    _controllers[i].FlashHint();
+                    break;
+                }
+            }
+        }
+
+        /// <summary>Reset the current puzzle to its starting position (no regeneration).</summary>
+        public void RestartPuzzle()
+        {
+            if (CurrentPuzzle == null) return;
+            _anchors = (int[])CurrentPuzzle.StartAnchors.Clone();
+            _undoStack.Clear();
+            _movesMade = 0;
+            for (int i = 0; i < _controllers.Length; i++)
+                _controllers[i].UpdateVisualPosition(_anchors[i]);
+            if (SolvedText != null) SolvedText.gameObject.SetActive(false);
+            RefreshUI();
         }
 
         private void RefreshUI()

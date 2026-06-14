@@ -16,13 +16,17 @@ namespace Gridlocked
 
         [Header("Layout — leave 0 to auto-fit")]
         public float CellSizeOverride = 0f;
+        [Tooltip("Pixels to shift the board up from screen centre (use to clear bottom HUD).")]
+        public float VerticalOffset = 50f;
 
         [Header("Prefabs")]
         public GameObject HexCellPrefab;
 
-        public HexBoard Board       { get; private set; }
-        public Vector2  BoardCentre { get; private set; }
-        public float    CellSize    { get; private set; }
+        public HexBoard Board        { get; private set; }
+        public Vector2  BoardCentre  { get; private set; }
+        public float    CellSize     { get; private set; }
+        /// <summary>Canvas-space centre shift applied to every cell and piece — clears bottom HUD.</summary>
+        public Vector2  CentreShift  { get; private set; }
         public (int q, int r) ExitAxial { get; private set; }
 
         private readonly List<GameObject> _cells = new();
@@ -32,12 +36,15 @@ namespace Gridlocked
 
         public void Render(ulong exitMask = 0)
         {
-            // Auto-fit: target ~80% of the shorter screen dimension across the board diameter.
+            // Auto-fit: reserve space for the HUD bar at the bottom, then fit the
+            // board into the remaining usable height (or width if that's smaller).
             // Board width (flat-top) ≈ CellSize * 1.5 * (2R) = 3R * CellSize
-            // So CellSize ≈ 0.8 * min(w,h) / (3 * R)
+            float hudReserve = VerticalOffset * 2f + 20f; // symmetric headroom
+            float usable = Mathf.Min(Screen.width, Screen.height - hudReserve);
             CellSize = CellSizeOverride > 0f
                 ? CellSizeOverride
-                : Mathf.Min(Screen.width, Screen.height) * 0.80f / (3f * Radius);
+                : usable * 0.78f / (3f * Radius);
+            CentreShift = new Vector2(0f, VerticalOffset);
 
             Board       = new HexBoard(Radius);
             BoardCentre = HexToLocal(Board.R, Board.R);
@@ -58,7 +65,7 @@ namespace Gridlocked
                 if (!Board.InHex(q, r)) continue;
 
                 bool isExit = (q == ExitAxial.q && r == ExitAxial.r);
-                Vector2 pos = HexToLocal(q, r) - BoardCentre;
+                Vector2 pos = HexToLocal(q, r) - BoardCentre + CentreShift;
 
                 var cell = MakeCell(isExit);
                 cell.name = $"Cell_{q}_{r}";
@@ -113,7 +120,7 @@ namespace Gridlocked
             txt.raycastTarget = false;
 
             var rt              = go.GetComponent<RectTransform>();
-            rt.anchoredPosition = HexToLocal(ExitAxial.q, ExitAxial.r) - BoardCentre
+            rt.anchoredPosition = HexToLocal(ExitAxial.q, ExitAxial.r) - BoardCentre + CentreShift
                                   + new Vector2(CellSize * 0.75f, 0f);
             rt.sizeDelta        = new Vector2(CellSize * 1.6f, CellSize * 0.5f);
         }

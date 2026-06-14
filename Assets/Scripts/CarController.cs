@@ -101,6 +101,21 @@ public class CarController : MonoBehaviour, IPointerDownHandler, IDragHandler, I
         // Visual Juice: Reset scale
         transform.localScale = Vector3.one;
 
+        // SFX: slide if the car actually moved; thock if it was shoved against a
+        // bound (player dragged past the clamp but it couldn't go further).
+        if (AudioManager.Instance != null)
+        {
+            int delta = Mathf.Abs(finalPos - _startPosIndex);
+            float desired = (_isHorizontal ? eventData.position.x - _startDragPos.x
+                                           : eventData.position.y - _startDragPos.y) / 100f;
+            bool wantedFurther = Mathf.Abs(desired) > delta + 0.5f;
+
+            if (delta > 0)
+                AudioManager.Instance.PlaySlide(Mathf.Clamp(1.1f - delta * 0.05f, 0.85f, 1.1f));
+            else if (wantedFurther)
+                AudioManager.Instance.PlayThock();
+        }
+
         GameManager.Instance.CommitMove(_carIndex, finalPos);
     }
 

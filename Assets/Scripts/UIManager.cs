@@ -26,6 +26,8 @@ public class UIManager : MonoBehaviour
         // Main Menu UI
         _levelList = root.Q<ScrollView>("level-list");
         root.Q<Button>("goto-custom-btn").clicked += () => SwitchScreen(_customGenScreen);
+        root.Q<Button>("main-menu-btn").clicked += () =>
+            UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
 
         // Custom Gen UI
         _carCountSlider = root.Q<SliderInt>("car-count-slider");
@@ -59,6 +61,7 @@ public class UIManager : MonoBehaviour
         {
             CrossSceneData.TargetDef = GameManager.Instance.Def;
             CrossSceneData.TargetState = GameManager.Instance.CurrentState;
+            CrossSceneData.PuzzleId = GameManager.Instance.PuzzleId;
             UnityEngine.SceneManagement.SceneManager.LoadScene("GraphScene");
         }
     }

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:editor="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
+>
+    <!-- Hex game button bar — mirrors MainHUD game-screen, Palette B -->
+    <ui:VisualElement name="hex-hud" picking-mode="Ignore" style="flex-grow: 1; align-items: center; justify-content: flex-end; padding-bottom: 24px;">
+        <ui:VisualElement picking-mode="Ignore" style="flex-direction: row; justify-content: space-between; width: 750px; background-color: #1E1C16; border-radius: 12px; padding: 8px; border-width: 1px; border-color: #3D3A30;">
+            <ui:Button name="hex-menu-btn"    text="Menu"    style="width: 140px; height: 60px; font-size: 24px; background-color: #2C2A22; color: #C8C0AE; border-radius: 8px; border-width: 0;" />
+            <ui:Button name="hex-undo-btn"    text="Undo"    style="width: 140px; height: 60px; font-size: 24px; background-color: #2C2A22; color: #C8C0AE; border-radius: 8px; border-width: 0;" />
+            <ui:Button name="hex-hint-btn"    text="Hint"    style="width: 140px; height: 60px; font-size: 24px; background-color: #2C2A22; color: #C49A3C; border-radius: 8px; border-width: 0;" />
+            <ui:Button name="hex-restart-btn" text="Restart" style="width: 140px; height: 60px; font-size: 24px; background-color: #2C2A22; color: #C8C0AE; border-radius: 8px; border-width: 0;" />
+            <ui:Button name="hex-new-btn"     text="New"     style="width: 140px; height: 60px; font-size: 24px; background-color: #2C2A22; color: #C8C0AE; border-radius: 8px; border-width: 0;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

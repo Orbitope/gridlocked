@@ -16,6 +16,7 @@
         <ui:Label text="Gridlocked" style="font-size: 80px; color: #EDE8DC; -unity-font-style: bold; margin-bottom: 40px;" />
         <ui:ScrollView name="level-list" style="width: 800px; height: 1000px; background-color: #1E1C16; border-radius: 20px; padding: 20px; border-width: 1px; border-color: #3D3A30;" />
         <ui:Button name="goto-custom-btn" text="Custom Puzzle Generator" style="width: 600px; height: 80px; font-size: 32px; margin-top: 40px; background-color: #2C2A22; color: #EDE8DC; border-radius: 10px; border-width: 1px; border-color: #3D3A30;" />
+        <ui:Button name="main-menu-btn" text="← Main Menu" style="width: 600px; height: 64px; font-size: 26px; margin-top: 16px; background-color: #6B7A8D; color: #EDE8DC; border-radius: 10px; border-width: 0;" />
     </ui:VisualElement>
 
     <!-- Custom Generator Screen -->

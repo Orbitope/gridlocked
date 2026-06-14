@@ -52,6 +52,19 @@ public readonly struct StateKey : IEquatable<StateKey>
         return new StateKey(a, b);
     }
 
+    /// <summary>Inverse of Pack — reads <paramref name="count"/> 6-bit anchors back out.</summary>
+    public int[] Unpack(int count)
+    {
+        var anchors = new int[count];
+        for (int i = 0; i < count; i++)
+        {
+            ulong src = i < 10 ? A : B;
+            int shift = (i < 10 ? i : i - 10) * 6;
+            anchors[i] = (int)((src >> shift) & 0x3F);
+        }
+        return anchors;
+    }
+
     public bool Equals(StateKey o) => A == o.A && B == o.B;
     public override bool Equals(object? o) => o is StateKey k && Equals(k);
     public override int GetHashCode() => HashCode.Combine(A, B);
