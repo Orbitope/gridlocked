@@ -47,10 +47,13 @@ public class GameManager : MonoBehaviour
     {
         GenerateGrid();
         
-        // If no level was passed in (e.g. testing the scene directly), load a random one
+        // If no level was passed in (e.g. testing the scene directly), pick a
+        // starting puzzle. Web/player build uses a curated level (no heavy
+        // runtime generation); research build generates a random one.
         if (CurrentLevelData == null)
         {
-            LoadNewPuzzle();
+            if (BuildConfig.ResearchEnabled) LoadNewPuzzle();
+            else                             LoadLevelByIndex(0);
         }
         else
         {
@@ -86,6 +89,22 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // Index of the current curated level in the database (-1 if random/custom).
+    private int _currentLevelIndex = -1;
+
+    /// <summary>Load curated level by its index in the LevelDatabase (tracks index for auto-advance).</summary>
+    public void LoadLevelByIndex(int index)
+    {
+        var db = Resources.Load<LevelDatabase>("LevelDatabase");
+        if (db == null || db.Levels.Count == 0) return;
+        index = ((index % db.Levels.Count) + db.Levels.Count) % db.Levels.Count;
+        _currentLevelIndex = index;
+        LoadLevel(db.Levels[index]);
+    }
+
+    /// <summary>Advance to the next curated level (web build auto-advance on solve).</summary>
+    public void LoadNextCuratedLevel() => LoadLevelByIndex(_currentLevelIndex + 1);
+
     public void LoadLevel(LevelData level)
     {
         UndoStack.Clear();
@@ -108,7 +127,7 @@ public class GameManager : MonoBehaviour
     public void LoadCustomPuzzle(int carCount, int minMoves)
     {
         UndoStack.Clear();
-        CurrentLevelData = null; // Mark as random puzzle
+        CurrentLevelData = null; _currentLevelIndex = -1; // Mark as random puzzle
         
         if (_generator.TryGenerateDensityFirst(carCount, minMoves, out PuzzleDefinition def, out PuzzleState state, out PuzzleQualityMetrics metrics))
         {
@@ -144,7 +163,7 @@ public class GameManager : MonoBehaviour
             int minMoves = Random.Range(minMovesLow, minMovesHigh + 1);
 
             UndoStack.Clear();
-            CurrentLevelData = null;
+            CurrentLevelData = null; _currentLevelIndex = -1;
             if (_generator.TryGenerateDensityFirst(cars, minMoves,
                     out PuzzleDefinition def, out PuzzleState state, out _))
             {
@@ -212,8 +231,16 @@ public class GameManager : MonoBehaviour
         if (CurrentLevelData.HasValue)
             SaveManager.RecordVictory(CurrentLevelData.Value.ID, CurrentMoveCount);
 
-        // Capture a 1–5 satisfaction rating before advancing. The overlay's
-        // callback records the rating and loads the next puzzle.
+        if (!BuildConfig.ResearchEnabled)
+        {
+            // Web/player build: no rating capture. Auto-advance to the next
+            // curated level (or replay if this wasn't curated).
+            if (_currentLevelIndex >= 0) Invoke(nameof(LoadNextCuratedLevel), 1.0f);
+            else Invoke(nameof(LoadNewPuzzle), 1.0f);
+            return;
+        }
+
+        // Research build: capture difficulty + satisfaction, then advance.
         ShowRatingPrompt();
     }
 

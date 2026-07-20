@@ -11,6 +11,9 @@ public static class GraphMetricsCsv
 {
     public static void Append(GraphAnalysis.GraphMetrics m, string puzzleId)
     {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        return; // no filesystem in the browser sandbox
+#else
         string dir  = Path.Combine(Application.dataPath, "..", "Exports");
         Directory.CreateDirectory(dir);
         string path = Path.Combine(dir, "graph_summary.csv");
@@ -29,5 +32,6 @@ public static class GraphMetricsCsv
             $"{m.SubgraphSize},{m.BottleneckCount}," +
             $"{m.CounterintuitiveMoves},{m.CounterintuitiveFrac:F3},{m.DependencyDepth}," +
             $"{m.DependencyWidth},{m.ForcedNodeCount},{m.DistinctStrategies}");
+#endif
     }
 }

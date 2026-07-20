@@ -15,6 +15,9 @@ public static class RatingsCsv
 
     public static void Append(string puzzleId, int difficulty, int satisfaction, int moves, int optimal)
     {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        return; // no filesystem in the browser sandbox
+#else
         string path = Path_;
         Directory.CreateDirectory(Path.GetDirectoryName(path));
 
@@ -22,12 +25,16 @@ public static class RatingsCsv
         using var w = new StreamWriter(path, append: true);
         if (header) w.WriteLine("timestamp,puzzle_id,difficulty,satisfaction,moves,optimal");
         w.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss},{puzzleId},{difficulty},{satisfaction},{moves},{optimal}");
+#endif
     }
 
     /// <summary>Latest (difficulty, satisfaction) per puzzle_id.</summary>
     public static Dictionary<string, (int difficulty, int satisfaction)> Read()
     {
         var result = new Dictionary<string, (int, int)>();
+#if UNITY_WEBGL && !UNITY_EDITOR
+        return result;
+#else
         string path = Path_;
         if (!File.Exists(path)) return result;
 
@@ -39,5 +46,6 @@ public static class RatingsCsv
             result[id] = (d, s); // later rows overwrite — keeps latest
         }
         return result;
+#endif
     }
 }

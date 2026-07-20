@@ -6,158 +6,48 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Cross-puzzle scatter plot, ContentKit-styled. Joins graph_summary.csv with
-/// ratings.csv (by puzzle_id) and plots any two numeric columns. Points are
-/// colored by satisfaction rating when available. CKDataGraph is line-only, so
-/// this is a small custom point renderer using CKColor.
-///
-/// X / Y axis cyclers + Menu button in a runtime uGUI HUD.
-/// Scroll = zoom, right-drag = pan.
+/// Cross-puzzle scatter, rendered in screen-space uGUI (a 2D plot doesn't need
+/// 3D). Joins graph_summary.csv with ratings.csv by puzzle_id and plots any two
+/// numeric columns; points are colored by satisfaction. Palette B (CKColor).
 /// </summary>
 public class AggregateScatter : MonoBehaviour
 {
     private static readonly string[] Columns =
     {
-        // research-aligned first (defaults point at the strongest pairing)
         "dependency_depth", "difficulty", "counterintuitive_moves", "counterintuitive_frac",
         "dependency_width", "forced_node_count", "distinct_strategies", "satisfaction",
-        // static baseline family
         "deception_ratio", "total_states", "optimal", "min_mobility",
         "mean_productive_frac", "subgraph_size", "bottleneck_count",
     };
 
-    private const float PlotW = 10f;
-    private const float PlotH = 6f;
-
     private List<Dictionary<string, string>> _rows;
-    private int _xCol = 0; // dependency_depth (strongest predictor)
+    private int _xCol = 0; // dependency_depth
     private int _yCol = 1; // difficulty
 
-    private readonly List<GameObject> _plotObjects = new();
-    private Camera _cam;
-    private Text _titleText;
-    private Text _xLabel, _yLabel;
-
-    private Vector3 _dragOrigin;
-    private bool    _dragging;
+    private RectTransform _plot;      // inset plot area
+    private Text _title, _xLabel, _yLabel, _xMin, _xMax, _yMin, _yMax, _empty;
+    private readonly List<GameObject> _points = new();
+    private Sprite _dot;
 
     // -----------------------------------------------------------------------
 
     private void Start()
     {
-        _cam = Camera.main;
-        if (_cam != null)
-        {
-            _cam.backgroundColor = CKColor.Void;
-            _cam.transform.position = new Vector3(PlotW * 0.5f, PlotH * 0.5f, -12f);
-        }
-
+        if (Camera.main != null) Camera.main.backgroundColor = CKColor.Void;
         _rows = CsvTable.JoinedRows();
-        BuildHUD();
+        BuildUI();
         Redraw();
     }
 
-    // -----------------------------------------------------------------------
-    // Plot
-    // -----------------------------------------------------------------------
-
-    private void Redraw()
+    private void BuildUI()
     {
-        foreach (var o in _plotObjects) Destroy(o);
-        _plotObjects.Clear();
-
-        if (_titleText) _titleText.text =
-            $"Cross-puzzle scatter   (n = {_rows.Count})   — small n is suggestive, not proof";
-        if (_xLabel) _xLabel.text = $"X: {Columns[_xCol]}";
-        if (_yLabel) _yLabel.text = $"Y: {Columns[_yCol]}";
-
-        // Axes
-        MakeLine(new Vector3(0, 0, 0), new Vector3(PlotW, 0, 0), CKColor.Border);
-        MakeLine(new Vector3(0, 0, 0), new Vector3(0, PlotH, 0), CKColor.Border);
-        MakeText(Columns[_xCol], new Vector3(PlotW * 0.5f, -0.6f, 0f), 0.4f, CKColor.TextBright);
-        MakeText(Columns[_yCol], new Vector3(-0.8f, PlotH * 0.5f, 0f), 0.4f, CKColor.TextBright, 90f);
-
-        var pts = CollectPoints(out float xMin, out float xMax, out float yMin, out float yMax);
-        if (pts.Count == 0)
-        {
-            MakeText("No data yet — play & rate puzzles, open Graph on each.",
-                new Vector3(PlotW * 0.5f, PlotH * 0.5f, 0f), 0.5f, CKColor.TextSecondary);
-            return;
-        }
-
-        // Axis min/max ticks
-        MakeText(xMin.ToString("G3", CultureInfo.InvariantCulture), new Vector3(0, -0.35f, 0), 0.28f, CKColor.TextSecondary);
-        MakeText(xMax.ToString("G3", CultureInfo.InvariantCulture), new Vector3(PlotW, -0.35f, 0), 0.28f, CKColor.TextSecondary);
-        MakeText(yMin.ToString("G3", CultureInfo.InvariantCulture), new Vector3(-0.45f, 0, 0), 0.28f, CKColor.TextSecondary);
-        MakeText(yMax.ToString("G3", CultureInfo.InvariantCulture), new Vector3(-0.45f, PlotH, 0), 0.28f, CKColor.TextSecondary);
-
-        foreach (var (px, py, rating) in pts)
-        {
-            float sx = Mathf.Approximately(xMax, xMin) ? 0.5f : (px - xMin) / (xMax - xMin);
-            float sy = Mathf.Approximately(yMax, yMin) ? 0.5f : (py - yMin) / (yMax - yMin);
-            var pos = new Vector3(sx * PlotW, sy * PlotH, 0f);
-
-            var dot = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            dot.transform.position = pos;
-            dot.transform.localScale = Vector3.one * 0.28f;
-            dot.GetComponent<Renderer>().material.color = RatingColor(rating);
-            _plotObjects.Add(dot);
-        }
-    }
-
-    /// <summary>Returns (x, y, rating) for rows where both axes parse. rating = -1 if unrated.</summary>
-    private List<(float x, float y, int rating)> CollectPoints(
-        out float xMin, out float xMax, out float yMin, out float yMax)
-    {
-        var list = new List<(float, float, int)>();
-        xMin = yMin = float.MaxValue; xMax = yMax = float.MinValue;
-
-        foreach (var row in _rows)
-        {
-            if (!TryGet(row, Columns[_xCol], out float x)) continue;
-            if (!TryGet(row, Columns[_yCol], out float y)) continue;
-            int rating = TryGet(row, "satisfaction", out float rf) ? Mathf.RoundToInt(rf) : -1;
-
-            list.Add((x, y, rating));
-            xMin = Mathf.Min(xMin, x); xMax = Mathf.Max(xMax, x);
-            yMin = Mathf.Min(yMin, y); yMax = Mathf.Max(yMax, y);
-        }
-
-        // Pad degenerate ranges a touch.
-        if (list.Count > 0)
-        {
-            if (Mathf.Approximately(xMin, xMax)) { xMin -= 1; xMax += 1; }
-            if (Mathf.Approximately(yMin, yMax)) { yMin -= 1; yMax += 1; }
-        }
-        return list;
-    }
-
-    private static bool TryGet(Dictionary<string, string> row, string col, out float v)
-    {
-        v = 0;
-        return row.TryGetValue(col, out var s)
-            && !string.IsNullOrEmpty(s)
-            && float.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out v);
-    }
-
-    private static Color RatingColor(int rating)
-    {
-        if (rating < 0) return CKColor.Steel;          // unrated
-        float t = Mathf.Clamp01((rating - 1) / 4f);    // 1..5 → 0..1
-        return t < 0.5f
-            ? Color.Lerp(CKColor.Coral, CKColor.Amber, t * 2f)
-            : Color.Lerp(CKColor.Amber, CKColor.Sage, (t - 0.5f) * 2f);
-    }
-
-    // -----------------------------------------------------------------------
-    // HUD
-    // -----------------------------------------------------------------------
-
-    private void BuildHUD()
-    {
-        var canvasGo = new GameObject("HUD",
+        var canvasGo = new GameObject("Canvas",
             typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-        canvasGo.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+        var canvas = canvasGo.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        var scaler = canvasGo.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
 
         if (UnityEngine.EventSystems.EventSystem.current == null)
         {
@@ -166,27 +56,132 @@ public class AggregateScatter : MonoBehaviour
             es.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
         }
 
-        _titleText = UIText(canvasGo, "Title", 22, TextAnchor.MiddleCenter,
-            new Rect(0.1f, 0.93f, 0.8f, 0.06f), CKColor.TextBright);
+        // Full-screen Void background.
+        var bg = Panel(canvasGo.transform, "BG", new Vector2(0, 0), new Vector2(1, 1), CKColor.Void);
 
-        // X cyclers
-        UIButton(canvasGo, "◀", new Rect(0.02f, 0.02f, 0.04f, 0.06f), () => Cycle(ref _xCol, -1));
-        _xLabel = UIText(canvasGo, "XLabel", 18, TextAnchor.MiddleCenter,
-            new Rect(0.06f, 0.02f, 0.20f, 0.06f), CKColor.Amber);
-        UIButton(canvasGo, "▶", new Rect(0.26f, 0.02f, 0.04f, 0.06f), () => Cycle(ref _xCol, +1));
+        // Plot area (inset margins).
+        _plot = Panel(canvasGo.transform, "Plot",
+            new Vector2(0.10f, 0.14f), new Vector2(0.93f, 0.86f), CKColor.Surface).GetComponent<RectTransform>();
+        // subtle border
+        Panel(_plot, "Frame", Vector2.zero, Vector2.one, new Color(0,0,0,0))
+            .GetComponent<Image>().color = new Color(0,0,0,0);
 
-        // Y cyclers
-        UIButton(canvasGo, "◀", new Rect(0.40f, 0.02f, 0.04f, 0.06f), () => Cycle(ref _yCol, -1));
-        _yLabel = UIText(canvasGo, "YLabel", 18, TextAnchor.MiddleCenter,
-            new Rect(0.44f, 0.02f, 0.20f, 0.06f), CKColor.Amber);
-        UIButton(canvasGo, "▶", new Rect(0.64f, 0.02f, 0.04f, 0.06f), () => Cycle(ref _yCol, +1));
+        // Axes lines (thin bars on left + bottom of plot).
+        Bar(_plot, "YAxis", new Vector2(0, 0), new Vector2(0, 1), 2.5f, true, CKColor.Border);
+        Bar(_plot, "XAxis", new Vector2(0, 0), new Vector2(1, 0), 2.5f, false, CKColor.Border);
 
-        // Menu
-        UIButton(canvasGo, "← Menu", new Rect(0.86f, 0.02f, 0.12f, 0.06f),
+        // Labels
+        _title = Label(canvasGo.transform, "Title", new Vector2(0.1f, 0.93f), new Vector2(0.9f, 0.99f),
+            24, TextAnchor.MiddleCenter, CKColor.TextBright);
+        _xLabel = Label(canvasGo.transform, "XLabel", new Vector2(0.10f, 0.06f), new Vector2(0.93f, 0.11f),
+            22, TextAnchor.MiddleCenter, CKColor.Amber);
+        _yLabel = Label(canvasGo.transform, "YLabel", new Vector2(0.005f, 0.14f), new Vector2(0.055f, 0.86f),
+            22, TextAnchor.MiddleCenter, CKColor.Amber);
+        _yLabel.GetComponent<RectTransform>().localRotation = Quaternion.Euler(0, 0, 90);
+
+        _xMin = Corner(canvasGo.transform, new Vector2(0.10f, 0.115f));
+        _xMax = Corner(canvasGo.transform, new Vector2(0.90f, 0.115f));
+        _yMin = Corner(canvasGo.transform, new Vector2(0.065f, 0.15f));
+        _yMax = Corner(canvasGo.transform, new Vector2(0.065f, 0.84f));
+
+        _empty = Label(canvasGo.transform, "Empty", new Vector2(0.2f, 0.4f), new Vector2(0.8f, 0.6f),
+            22, TextAnchor.MiddleCenter, CKColor.TextSecondary);
+        _empty.gameObject.SetActive(false);
+
+        // Axis cyclers + menu
+        Btn(canvasGo.transform, "◀", new Vector2(0.02f, 0.02f), new Vector2(0.05f, 0.07f), () => Cycle(ref _xCol, -1));
+        Btn(canvasGo.transform, "X ▶", new Vector2(0.055f, 0.02f), new Vector2(0.10f, 0.07f), () => Cycle(ref _xCol, +1));
+        Btn(canvasGo.transform, "◀", new Vector2(0.14f, 0.02f), new Vector2(0.17f, 0.07f), () => Cycle(ref _yCol, -1));
+        Btn(canvasGo.transform, "Y ▶", new Vector2(0.175f, 0.02f), new Vector2(0.22f, 0.07f), () => Cycle(ref _yCol, +1));
+        Btn(canvasGo.transform, "← Menu", new Vector2(0.87f, 0.02f), new Vector2(0.98f, 0.07f),
             () => UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu"));
+    }
 
-        UIText(canvasGo, "Hint", 13, TextAnchor.MiddleCenter,
-            new Rect(0.3f, 0.02f, 0.1f, 0.06f), CKColor.TextMuted).text = "Scroll=zoom";
+    // -----------------------------------------------------------------------
+
+    private void Redraw()
+    {
+        foreach (var p in _points) Destroy(p);
+        _points.Clear();
+
+        int rated = _rows.Count(r => r.TryGetValue("difficulty", out var d) && !string.IsNullOrEmpty(d));
+        _title.text = $"Cross-puzzle scatter   ·   {_rows.Count} puzzles, {rated} rated   ·   small n is suggestive, not proof";
+        _xLabel.text = Columns[_xCol];
+        _yLabel.text = Columns[_yCol];
+
+        var pts = Collect(out float xMin, out float xMax, out float yMin, out float yMax);
+
+        if (pts.Count == 0)
+        {
+            _empty.gameObject.SetActive(true);
+            _empty.text = rated == 0 && (Columns[_xCol] == "difficulty" || Columns[_yCol] == "difficulty"
+                             || Columns[_xCol] == "satisfaction" || Columns[_yCol] == "satisfaction")
+                ? "No rated puzzles yet.\nSolve puzzles (rate difficulty + satisfaction),\nthen open Graph on each to record metrics."
+                : "No data for these axes yet.\nOpen Graph on some puzzles first.";
+            _xMin.text = _xMax.text = _yMin.text = _yMax.text = "";
+            return;
+        }
+        _empty.gameObject.SetActive(false);
+
+        _xMin.text = xMin.ToString("G3", CultureInfo.InvariantCulture);
+        _xMax.text = xMax.ToString("G3", CultureInfo.InvariantCulture);
+        _yMin.text = yMin.ToString("G3", CultureInfo.InvariantCulture);
+        _yMax.text = yMax.ToString("G3", CultureInfo.InvariantCulture);
+
+        foreach (var (x, y, rating) in pts)
+        {
+            float sx = Mathf.Approximately(xMax, xMin) ? 0.5f : (x - xMin) / (xMax - xMin);
+            float sy = Mathf.Approximately(yMax, yMin) ? 0.5f : (y - yMin) / (yMax - yMin);
+
+            var dot = new GameObject("pt", typeof(Image));
+            dot.transform.SetParent(_plot, false);
+            var rt = dot.GetComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(sx, sy);
+            rt.sizeDelta = new Vector2(18, 18);
+            rt.anchoredPosition = Vector2.zero;
+            var img = dot.GetComponent<Image>();
+            img.sprite = Dot();
+            img.color  = RatingColor(rating);
+            _points.Add(dot);
+        }
+    }
+
+    private List<(float x, float y, int rating)> Collect(
+        out float xMin, out float xMax, out float yMin, out float yMax)
+    {
+        var list = new List<(float, float, int)>();
+        xMin = yMin = float.MaxValue; xMax = yMax = float.MinValue;
+        foreach (var row in _rows)
+        {
+            if (!Num(row, Columns[_xCol], out float x)) continue;
+            if (!Num(row, Columns[_yCol], out float y)) continue;
+            int rating = Num(row, "satisfaction", out float rf) ? Mathf.RoundToInt(rf) : -1;
+            list.Add((x, y, rating));
+            xMin = Mathf.Min(xMin, x); xMax = Mathf.Max(xMax, x);
+            yMin = Mathf.Min(yMin, y); yMax = Mathf.Max(yMax, y);
+        }
+        if (list.Count > 0)
+        {
+            // Pad so points don't sit exactly on the axes / degenerate ranges.
+            if (Mathf.Approximately(xMin, xMax)) { xMin -= 1; xMax += 1; } else { float p = (xMax-xMin)*0.08f; xMin -= p; xMax += p; }
+            if (Mathf.Approximately(yMin, yMax)) { yMin -= 1; yMax += 1; } else { float p = (yMax-yMin)*0.08f; yMin -= p; yMax += p; }
+        }
+        return list;
+    }
+
+    private static bool Num(Dictionary<string, string> row, string col, out float v)
+    {
+        v = 0;
+        return row.TryGetValue(col, out var s) && !string.IsNullOrEmpty(s)
+            && float.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out v);
+    }
+
+    private static Color RatingColor(int rating)
+    {
+        if (rating < 0) return CKColor.Steel;
+        float t = Mathf.Clamp01((rating - 1) / 4f);
+        return t < 0.5f ? Color.Lerp(CKColor.Coral, CKColor.Amber, t * 2f)
+                        : Color.Lerp(CKColor.Amber, CKColor.Sage, (t - 0.5f) * 2f);
     }
 
     private void Cycle(ref int idx, int dir)
@@ -196,90 +191,81 @@ public class AggregateScatter : MonoBehaviour
     }
 
     // -----------------------------------------------------------------------
-    // Camera
+    // uGUI builders
     // -----------------------------------------------------------------------
 
-    private void Update()
+    private static GameObject Panel(Transform parent, string name, Vector2 aMin, Vector2 aMax, Color color)
     {
-        if (_cam == null) return;
-        float scroll = Input.GetAxis("Mouse ScrollWheel");
-        if (Mathf.Abs(scroll) > 0.001f)
-            _cam.fieldOfView = Mathf.Clamp(_cam.fieldOfView - scroll * 15f, 5f, 90f);
-
-        if (Input.GetMouseButtonDown(1))
-        { _dragging = true; _dragOrigin = ScreenWorld(); }
-        if (Input.GetMouseButtonUp(1)) _dragging = false;
-        if (_dragging)
-        {
-            var cur = ScreenWorld();
-            _cam.transform.position += _dragOrigin - cur;
-            _dragOrigin = ScreenWorld();
-        }
+        var go = new GameObject(name, typeof(Image));
+        go.transform.SetParent(parent, false);
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = aMin; rt.anchorMax = aMax; rt.offsetMin = rt.offsetMax = Vector2.zero;
+        go.GetComponent<Image>().color = color;
+        return go;
     }
 
-    private Vector3 ScreenWorld() =>
-        _cam.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10f));
-
-    // -----------------------------------------------------------------------
-    // Primitive helpers
-    // -----------------------------------------------------------------------
-
-    private void MakeLine(Vector3 a, Vector3 b, Color color)
+    private static void Bar(Transform parent, string name, Vector2 aMin, Vector2 aMax,
+        float thickness, bool vertical, Color color)
     {
-        var go = new GameObject("Axis");
-        var lr = go.AddComponent<LineRenderer>();
-        lr.material = new Material(Shader.Find("Sprites/Default"));
-        lr.startWidth = lr.endWidth = 0.04f;
-        lr.startColor = lr.endColor = color;
-        lr.SetPosition(0, a); lr.SetPosition(1, b);
-        _plotObjects.Add(go);
-    }
-
-    private void MakeText(string text, Vector3 pos, float size, Color color, float zRot = 0f)
-    {
-        var go = new GameObject("Lbl");
-        go.transform.position = pos;
-        go.transform.rotation = Quaternion.Euler(0, 0, zRot);
-        var tm = go.AddComponent<TextMesh>();
-        tm.text = text; tm.fontSize = 24; tm.characterSize = size;
-        tm.color = color; tm.alignment = TextAlignment.Center; tm.anchor = TextAnchor.MiddleCenter;
-        _plotObjects.Add(go);
-    }
-
-    private static Text UIText(GameObject canvas, string name, int fontSize,
-        TextAnchor align, Rect anchor, Color color)
-    {
-        var go = new GameObject(name); go.transform.SetParent(canvas.transform, false);
-        var rt = go.AddComponent<RectTransform>();
-        rt.anchorMin = new Vector2(anchor.x, anchor.y);
-        rt.anchorMax = new Vector2(anchor.x + anchor.width, anchor.y + anchor.height);
+        var go = new GameObject(name, typeof(Image));
+        go.transform.SetParent(parent, false);
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = aMin; rt.anchorMax = aMax;
         rt.offsetMin = rt.offsetMax = Vector2.zero;
-        var txt = go.AddComponent<Text>();
-        txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        txt.fontSize = fontSize; txt.alignment = align; txt.color = color;
-        return txt;
+        if (vertical) rt.sizeDelta = new Vector2(thickness, 0);
+        else          rt.sizeDelta = new Vector2(0, thickness);
+        go.GetComponent<Image>().color = color;
     }
 
-    private static void UIButton(GameObject canvas, string label, Rect anchor,
+    private static Text Label(Transform parent, string name, Vector2 aMin, Vector2 aMax,
+        int size, TextAnchor align, Color color)
+    {
+        var go = new GameObject(name, typeof(Text));
+        go.transform.SetParent(parent, false);
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = aMin; rt.anchorMax = aMax; rt.offsetMin = rt.offsetMax = Vector2.zero;
+        var t = go.GetComponent<Text>();
+        t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        t.fontSize = size; t.alignment = align; t.color = color;
+        t.horizontalOverflow = HorizontalWrapMode.Overflow;
+        t.verticalOverflow = VerticalWrapMode.Overflow;
+        return t;
+    }
+
+    private static Text Corner(Transform parent, Vector2 anchor)
+    {
+        var t = Label(parent, "Tick", anchor - new Vector2(0.03f, 0.02f), anchor + new Vector2(0.03f, 0.02f),
+            15, TextAnchor.MiddleCenter, CKColor.TextSecondary);
+        return t;
+    }
+
+    private static void Btn(Transform parent, string label, Vector2 aMin, Vector2 aMax,
         UnityEngine.Events.UnityAction onClick)
     {
         var go = new GameObject($"Btn_{label}", typeof(Image), typeof(Button));
-        go.transform.SetParent(canvas.transform, false);
+        go.transform.SetParent(parent, false);
         var rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = new Vector2(anchor.x, anchor.y);
-        rt.anchorMax = new Vector2(anchor.x + anchor.width, anchor.y + anchor.height);
-        rt.offsetMin = rt.offsetMax = Vector2.zero;
+        rt.anchorMin = aMin; rt.anchorMax = aMax; rt.offsetMin = rt.offsetMax = Vector2.zero;
         go.GetComponent<Image>().color = CKColor.Raised;
         go.GetComponent<Button>().onClick.AddListener(onClick);
+        var t = Label(go.transform, "L", Vector2.zero, Vector2.one, 18, TextAnchor.MiddleCenter, CKColor.TextPrimary);
+        t.text = label;
+    }
 
-        var t = new GameObject("Label", typeof(Text));
-        t.transform.SetParent(go.transform, false);
-        var trt = t.GetComponent<RectTransform>();
-        trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one;
-        trt.offsetMin = trt.offsetMax = Vector2.zero;
-        var txt = t.GetComponent<Text>();
-        txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        txt.fontSize = 18; txt.alignment = TextAnchor.MiddleCenter;
-        txt.color = CKColor.TextPrimary; txt.text = label;
+    private Sprite Dot()
+    {
+        if (_dot != null) return _dot;
+        int res = 32; var tex = new Texture2D(res, res, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Bilinear;
+        float c = res / 2f, r = res / 2f - 1f;
+        for (int y = 0; y < res; y++)
+        for (int x = 0; x < res; x++)
+        {
+            float d = Mathf.Sqrt((x - c) * (x - c) + (y - c) * (y - c));
+            tex.SetPixel(x, y, d <= r ? Color.white : Color.clear);
+        }
+        tex.Apply();
+        _dot = Sprite.Create(tex, new Rect(0, 0, res, res), new Vector2(0.5f, 0.5f), res);
+        return _dot;
     }
 }

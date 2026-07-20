@@ -16,6 +16,9 @@ public static class CsvTable
     public static List<Dictionary<string, string>> Load(string path)
     {
         var rows = new List<Dictionary<string, string>>();
+#if UNITY_WEBGL && !UNITY_EDITOR
+        return rows;
+#else
         if (!File.Exists(path)) return rows;
 
         var lines = File.ReadAllLines(path);
@@ -32,6 +35,7 @@ public static class CsvTable
             rows.Add(row);
         }
         return rows;
+#endif
     }
 
     /// <summary>

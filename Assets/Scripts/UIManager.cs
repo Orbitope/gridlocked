@@ -53,6 +53,19 @@ public class UIManager : MonoBehaviour
         root.Q<Button>("hint-btn").clicked += () => GameManager.Instance.ShowHint();
         root.Q<Button>("graph-btn").clicked += LoadGraphScene;
         root.Q<Button>("new-puzzle-btn").clicked += RestartCurrentPuzzle;
+
+        // Web/player build: hide the research-only entry points.
+        if (!BuildConfig.ResearchEnabled)
+        {
+            void Hide(string name)
+            {
+                var b = root.Q<Button>(name);
+                if (b != null) b.style.display = DisplayStyle.None;
+            }
+            Hide("random-puzzle-btn");
+            Hide("goto-custom-btn");
+            Hide("graph-btn");
+        }
     }
 
     private void Start()
@@ -121,10 +134,10 @@ public class UIManager : MonoBehaviour
             btn.Add(titleLabel);
             btn.Add(scoreLabel);
 
-            // Copy struct for closure
-            LevelData data = level;
+            // Load by index so auto-advance (web) knows the position in the DB.
+            int levelIndex = levelNum - 1;
             btn.clicked += () => {
-                GameManager.Instance.LoadLevel(data);
+                GameManager.Instance.LoadLevelByIndex(levelIndex);
                 SwitchScreen(_gameScreen);
             };
 

@@ -10,6 +10,16 @@
 /[Ll]ogs/
 /[Mm]emoryCaptures/
 
+# Player build output — prefer building into /Builds/ (already ignored above).
+# These cover ad-hoc build folder names so they can't be committed by accident.
+/gridlocked-web/
+/gridlocked-win*/
+/Exports/
+*.app/
+
+# macOS
+.DS_Store
+
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta
 

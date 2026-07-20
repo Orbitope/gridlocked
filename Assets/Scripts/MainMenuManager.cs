@@ -14,6 +14,12 @@ public class MainMenuManager : MonoBehaviour
         root.Q<Button>("play-square-btn").clicked += () => SceneManager.LoadScene("SampleScene");
         root.Q<Button>("play-hex-btn").clicked    += () => SceneManager.LoadScene("HexScene");
         var aggBtn = root.Q<Button>("play-aggregate-btn");
-        if (aggBtn != null) aggBtn.clicked += () => SceneManager.LoadScene("AggregateScene");
+        if (aggBtn != null)
+        {
+            if (BuildConfig.ResearchEnabled)
+                aggBtn.clicked += () => SceneManager.LoadScene("AggregateScene");
+            else
+                aggBtn.style.display = DisplayStyle.None; // research-only
+        }
     }
 }

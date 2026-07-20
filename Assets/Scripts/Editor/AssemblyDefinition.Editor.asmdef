@@ -1,0 +1,11 @@
+{
+    "name": "AssemblyDefinition.Editor",
+    "references": [
+        "AssemblyDefinition",
+        "ContentKit.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "autoReferenced": true
+}
