@@ -160,15 +160,88 @@ public static class GraphAnalysis
         return result;
     }
 
+    /// <summary>
+    /// Nodes every optimal path must pass through (true bottlenecks). A node v on
+    /// the solution DAG is forced iff pathsTo(v) * pathsFrom(v) == totalOptimalPaths.
+    /// More principled than the in/out-degree heuristic.
+    /// </summary>
+    public static HashSet<ulong> ForcedNodes(
+        Dictionary<ulong, List<ulong>> graph,
+        Dictionary<ulong, int> depths,
+        Dictionary<ulong, int> dist,
+        ulong start, int optimal)
+    {
+        // Solution-DAG membership: depth[n] + dist[n] == optimal.
+        bool OnDag(ulong n) =>
+            depths.TryGetValue(n, out int d) && dist.TryGetValue(n, out int g) && d + g == optimal;
+
+        // pathsTo: number of optimal paths start->v (DP in depth order).
+        var order = depths.Where(kv => OnDag(kv.Key))
+                          .OrderBy(kv => kv.Value).Select(kv => kv.Key).ToList();
+        var toV = new Dictionary<ulong, long> { [start] = 1 };
+        foreach (var u in order)
+        {
+            long cu = toV.GetValueOrDefault(u, 0);
+            if (cu == 0 || !graph.TryGetValue(u, out var succ)) continue;
+            foreach (var v in succ)
+                if (OnDag(v) && depths[v] == depths[u] + 1)
+                    toV[v] = toV.GetValueOrDefault(v, 0) + cu;
+        }
+        // pathsFrom: number of optimal paths v->goal (DP in reverse depth order).
+        var fromV = new Dictionary<ulong, long>();
+        foreach (var v in order) if (dist[v] == 0) fromV[v] = 1;
+        for (int i = order.Count - 1; i >= 0; i--)
+        {
+            var u = order[i];
+            if (!graph.TryGetValue(u, out var succ)) continue;
+            long acc = fromV.GetValueOrDefault(u, 0);
+            foreach (var v in succ)
+                if (OnDag(v) && depths[v] == depths[u] + 1)
+                    acc += fromV.GetValueOrDefault(v, 0);
+            if (acc > 0) fromV[u] = acc;
+        }
+
+        long total = toV.Where(kv => dist.GetValueOrDefault(kv.Key, -1) == 0).Sum(kv => kv.Value);
+        var forced = new HashSet<ulong>();
+        if (total <= 0) return forced;
+        foreach (var v in order)
+            if (v != start && dist[v] != 0 &&
+                toV.GetValueOrDefault(v, 0) * fromV.GetValueOrDefault(v, 0) == total)
+                forced.Add(v);
+        return forced;
+    }
+
+    /// <summary>
+    /// Number of genuinely different opening strategies: start-successors that lie
+    /// on an optimal path (depth 1 and dist == optimal-1). 1 = "spherical" graph.
+    /// </summary>
+    public static int DistinctFirstMoves(
+        Dictionary<ulong, List<ulong>> graph,
+        Dictionary<ulong, int> dist,
+        ulong start, int optimal)
+    {
+        if (!graph.TryGetValue(start, out var succ)) return 0;
+        return succ.Count(v => dist.TryGetValue(v, out int g) && g == optimal - 1);
+    }
+
     /// <summary>Summary row for the cross-puzzle CSV.</summary>
     public struct GraphMetrics
     {
+        // --- weak "static" family (kept as baseline contrast per literature) ---
         public int TotalStates;
-        public int Optimal;
-        public float DeceptionRatio;   // totalStates / optimal
-        public int MinMobility;        // tightest point on the solution path
+        public int Optimal;                 // Jarušek Spearman ~0.47
+        public float DeceptionRatio;        // totalStates / optimal
+        public int MinMobility;
         public float MeanProductiveFraction;
         public int SubgraphSize;
-        public int BottleneckCount;
+        public int BottleneckCount;         // heuristic (in/out-degree)
+
+        // --- research-aligned structural family ---
+        public int CounterintuitiveMoves;   // Jarušek ~0.69
+        public float CounterintuitiveFrac;
+        public int DependencyDepth;         // ≈ decomposition, Jarušek ~0.82
+        public int DependencyWidth;         // independent subproblems
+        public int ForcedNodeCount;         // true bottlenecks (must-pass states)
+        public int DistinctStrategies;      // spherical(1) vs multi-path
     }
 }

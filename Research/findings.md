@@ -48,6 +48,54 @@ Track hypotheses here as they form. Mark each as Supported / Refuted / Inconclus
 
 ---
 
+### H5 — Dependency depth predicts difficulty better than any static metric
+**Status:** Untested (research-motivated — see Research grounding below)  
+**Rationale:** Jarušek & Pelánek found problem *decomposition / dependency structure* is the strongest predictor of human difficulty (~0.82), far above solution length (~0.47) or state-space size. Our `dependency_depth` (longest "must-move-X-before-Y" chain from the solution) operationalizes this.  
+**What would support it:** `dependency_depth` correlates with felt difficulty more strongly than `deception_ratio` / `total_states` across our rated puzzles.  
+**What would refute it:** Static metrics predict our ratings as well or better.
+
+---
+
+## Research grounding
+
+External work directly relevant to our core question. **Key takeaway: static
+state-space metrics (size, solution length) are weak predictors of human
+difficulty; the *structure* of the solution — dependencies and counterintuitive
+moves — is what matters.** This reframes our metric priorities.
+
+| Source | Metric | Human corr. (Spearman) |
+|---|---|---|
+| Jarušek & Pelánek | solution length | ~0.47 (weak) |
+| Jarušek & Pelánek | counterintuitive moves | ~0.69 |
+| Jarušek & Pelánek | **problem decomposition / dependency** | **~0.82 (strongest)** |
+| Fogleman (RH database) | move count; cluster size; distance-to-goal histogram; bottleneck points | — |
+| Wolfram (RH graph topology) | "spherical" (1 path) = easy; many distinct paths = hard | — |
+
+**Implication for our metrics:** `deception_ratio`, `total_states`,
+`subgraph_size` are the *weak* static family — kept only as a baseline contrast.
+The metrics we now compute that are research-aligned:
+- `counterintuitive_moves` — optimal-path steps that don't reduce the greedy
+  heuristic (blockers + red-car distance). Jarušek ~0.69.
+- `dependency_depth` / `dependency_width` — longest dependency chain / number of
+  independent subproblems. ≈ decomposition, Jarušek ~0.82. **Visualized in the
+  Dependency Structure graph view.**
+- `forced_node_count` — states *every* optimal path must pass through (true
+  bottlenecks, via path-count DP — replaces the in/out-degree heuristic).
+- `distinct_strategies` — number of genuinely different opening moves (Wolfram
+  spherical=1 vs multi-path).
+
+**Honesty note for the writeup/video:** the ~0.82 was validated against human
+*solve times* over thousands of instances. Our 1–5 self-ratings at small n are
+suggestive, not proof — and *satisfaction ≠ difficulty* (we now capture both
+separately). Frame as "here's the pattern we see," not "we proved it."
+
+Sources:
+- Jarušek & Pelánek, "What Determines Difficulty of Transport Puzzles?" / "Difficulty Rating of Sokoban Puzzle."
+- Fogleman (2018) — https://www.michaelfogleman.com/rush/
+- Wolfram — https://christopherwolfram.com/projects/rush-hour/
+
+---
+
 ## Emerging patterns
 
 *Add observations here as entries accumulate in puzzle_analysis.md. Minimum 5 puzzles before drawing conclusions.*

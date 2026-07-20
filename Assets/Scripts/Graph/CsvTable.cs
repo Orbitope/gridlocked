@@ -50,8 +50,18 @@ public static class CsvTable
 
         var ratings = RatingsCsv.Read();
         foreach (var kvp in byId)
-            kvp.Value["rating"] = ratings.TryGetValue(kvp.Key, out int r)
-                ? r.ToString() : "";
+        {
+            if (ratings.TryGetValue(kvp.Key, out var r))
+            {
+                kvp.Value["difficulty"]   = r.difficulty   >= 0 ? r.difficulty.ToString()   : "";
+                kvp.Value["satisfaction"] = r.satisfaction >= 0 ? r.satisfaction.ToString() : "";
+            }
+            else
+            {
+                kvp.Value["difficulty"] = "";
+                kvp.Value["satisfaction"] = "";
+            }
+        }
 
         return byId.Values.ToList();
     }

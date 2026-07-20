@@ -26,6 +26,12 @@ public class UIManager : MonoBehaviour
         // Main Menu UI
         _levelList = root.Q<ScrollView>("level-list");
         root.Q<Button>("goto-custom-btn").clicked += () => SwitchScreen(_customGenScreen);
+        var randomBtn = root.Q<Button>("random-puzzle-btn");
+        if (randomBtn != null) randomBtn.clicked += () =>
+        {
+            GameManager.Instance.LoadRandomPuzzle();
+            SwitchScreen(_gameScreen);
+        };
         root.Q<Button>("main-menu-btn").clicked += () =>
             UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
 

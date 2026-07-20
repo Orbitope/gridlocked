@@ -19,11 +19,15 @@ public static class GraphMetricsCsv
         using var w = new StreamWriter(path, append: true);
         if (header)
             w.WriteLine("timestamp,puzzle_id,total_states,optimal,deception_ratio," +
-                        "min_mobility,mean_productive_frac,subgraph_size,bottleneck_count");
+                        "min_mobility,mean_productive_frac,subgraph_size,bottleneck_count," +
+                        "counterintuitive_moves,counterintuitive_frac,dependency_depth," +
+                        "dependency_width,forced_node_count,distinct_strategies");
 
         w.WriteLine(
             $"{DateTime.Now:yyyy-MM-dd HH:mm:ss},{puzzleId},{m.TotalStates},{m.Optimal}," +
             $"{m.DeceptionRatio:F2},{m.MinMobility},{m.MeanProductiveFraction:F3}," +
-            $"{m.SubgraphSize},{m.BottleneckCount}");
+            $"{m.SubgraphSize},{m.BottleneckCount}," +
+            $"{m.CounterintuitiveMoves},{m.CounterintuitiveFrac:F3},{m.DependencyDepth}," +
+            $"{m.DependencyWidth},{m.ForcedNodeCount},{m.DistinctStrategies}");
     }
 }

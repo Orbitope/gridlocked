@@ -123,9 +123,41 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void LoadNewPuzzle()
+    [Header("Random puzzle ranges (auto-advance)")]
+    public int minCars = 6;
+    public int maxCars = 12;
+    public int minMovesLow = 6;
+    public int minMovesHigh = 18;
+
+    public void LoadNewPuzzle() => LoadRandomPuzzle();
+
+    /// <summary>
+    /// Generates a puzzle with randomized car count + minimum-move target, so the
+    /// research corpus spreads across the difficulty space without manual slider
+    /// picking. Retries other random params if a combo fails to generate.
+    /// </summary>
+    public void LoadRandomPuzzle()
     {
-        LoadCustomPuzzle(8, 8); // Default
+        for (int attempt = 0; attempt < 12; attempt++)
+        {
+            int cars     = Random.Range(minCars, maxCars + 1);
+            int minMoves = Random.Range(minMovesLow, minMovesHigh + 1);
+
+            UndoStack.Clear();
+            CurrentLevelData = null;
+            if (_generator.TryGenerateDensityFirst(cars, minMoves,
+                    out PuzzleDefinition def, out PuzzleState state, out _))
+            {
+                Def = def;
+                CurrentState = state;
+                _initialStateData = CurrentState.Data;
+                SpawnCars();
+                Debug.Log($"[GameManager] Random puzzle: {cars} cars, min {minMoves} moves.");
+                return;
+            }
+        }
+        Debug.LogWarning("[GameManager] Random generation failed 12×; falling back to 8/8.");
+        LoadCustomPuzzle(8, 8);
     }
 
     private void SpawnCars()
@@ -189,9 +221,32 @@ public class GameManager : MonoBehaviour
 
     private GameObject _ratingOverlay;
 
+    private int _pendingDifficulty = -1;
+    private System.Action<int> _ratingCallback;
+
+    // Two sequential 1–5 prompts: difficulty (mirrors the research), then
+    // satisfaction (the video angle). Both keyed to the same PuzzleId.
     private void ShowRatingPrompt()
     {
+        BuildPrompt($"Solved in {_victoryMoves} moves!\nHow HARD did that feel?",
+            difficulty =>
+            {
+                _pendingDifficulty = difficulty;
+                BuildPrompt("How SATISFYING was it?", satisfaction =>
+                {
+                    RatingsCsv.Append(PuzzleId, _pendingDifficulty, satisfaction,
+                                      _victoryMoves, _victoryOptimal);
+                    Debug.Log($"[GameManager] difficulty={_pendingDifficulty} " +
+                              $"satisfaction={satisfaction} (puzzle {PuzzleId}).");
+                    Invoke("LoadNewPuzzle", 0.3f);
+                });
+            });
+    }
+
+    private void BuildPrompt(string question, System.Action<int> onPick)
+    {
         if (_ratingOverlay != null) Destroy(_ratingOverlay);
+        _ratingCallback = onPick;
 
         _ratingOverlay = new GameObject("RatingOverlay",
             typeof(Canvas), typeof(UnityEngine.UI.CanvasScaler),
@@ -200,7 +255,6 @@ public class GameManager : MonoBehaviour
         canvas.renderMode  = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 100;
 
-        // Dim backdrop
         var bg = new GameObject("BG", typeof(UnityEngine.UI.Image));
         bg.transform.SetParent(_ratingOverlay.transform, false);
         var bgRt = bg.GetComponent<RectTransform>();
@@ -208,22 +262,20 @@ public class GameManager : MonoBehaviour
         bgRt.offsetMin = bgRt.offsetMax = Vector2.zero;
         bg.GetComponent<UnityEngine.UI.Image>().color = new Color32(0x11, 0x10, 0x09, 220);
 
-        // Prompt label
         var label = new GameObject("Prompt", typeof(UnityEngine.UI.Text));
         label.transform.SetParent(_ratingOverlay.transform, false);
         var lrt = label.GetComponent<RectTransform>();
         lrt.anchorMin = new Vector2(0.5f, 0.5f); lrt.anchorMax = new Vector2(0.5f, 0.5f);
-        lrt.anchoredPosition = new Vector2(0, 90); lrt.sizeDelta = new Vector2(700, 80);
+        lrt.anchoredPosition = new Vector2(0, 90); lrt.sizeDelta = new Vector2(700, 90);
         var ltxt = label.GetComponent<UnityEngine.UI.Text>();
         ltxt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         ltxt.fontSize = 36; ltxt.alignment = TextAnchor.MiddleCenter;
         ltxt.color = new Color32(0xED, 0xE8, 0xDC, 255);
-        ltxt.text = $"Solved in {_victoryMoves} moves!\nHow satisfying was it?";
+        ltxt.text = question;
 
-        // 1–5 buttons
         for (int i = 1; i <= 5; i++)
         {
-            int rating = i;
+            int val = i;
             var btn = new GameObject($"Rate{i}",
                 typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.Button));
             btn.transform.SetParent(_ratingOverlay.transform, false);
@@ -232,7 +284,7 @@ public class GameManager : MonoBehaviour
             rt.sizeDelta = new Vector2(90, 90);
             rt.anchoredPosition = new Vector2((i - 3) * 110, -30);
             btn.GetComponent<UnityEngine.UI.Image>().color = new Color32(0x2C, 0x2A, 0x22, 255);
-            btn.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(() => SubmitRating(rating));
+            btn.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(() => PickRating(val));
 
             var t = new GameObject("n", typeof(UnityEngine.UI.Text));
             t.transform.SetParent(btn.transform, false);
@@ -249,20 +301,18 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
-        // Number keys 1–5 as a shortcut while the rating overlay is up.
+        // Number keys 1–5 while a rating prompt is up.
         if (_ratingOverlay != null)
-        {
             for (int i = 1; i <= 5; i++)
-                if (Input.GetKeyDown(KeyCode.Alpha0 + i)) { SubmitRating(i); break; }
-        }
+                if (Input.GetKeyDown(KeyCode.Alpha0 + i)) { PickRating(i); break; }
     }
 
-    private void SubmitRating(int rating)
+    private void PickRating(int val)
     {
-        RatingsCsv.Append(PuzzleId, rating, _victoryMoves, _victoryOptimal);
-        Debug.Log($"[GameManager] Rated {rating}/5 (puzzle {PuzzleId}).");
+        var cb = _ratingCallback;
+        _ratingCallback = null;
         if (_ratingOverlay != null) { Destroy(_ratingOverlay); _ratingOverlay = null; }
-        Invoke("LoadNewPuzzle", 0.3f);
+        cb?.Invoke(val);
     }
 
     public void UndoMove()

@@ -39,10 +39,13 @@ public class GraphManager : MonoBehaviour
     private List<(int mobility, int productive)> _mobility;
     private int[]  _reach;
     private HashSet<ulong> _bottlenecks;
+    private HashSet<ulong> _forced;
     private Dictionary<ulong, List<ulong>> _graph;
     private int _optimal;
+    private RushHourMetrics.Result _rh;
+    private int _distinctStrategies;
 
-    private enum ViewMode { PathChain, MobilityProfile, Reachability }
+    private enum ViewMode { PathChain, DependencyDAG, MobilityProfile, Reachability }
     private ViewMode _view = ViewMode.PathChain;
 
     private readonly List<GameObject> _viewObjects = new();
@@ -86,6 +89,9 @@ public class GraphManager : MonoBehaviour
         _mobility   = GraphAnalysis.MobilityProfile(
                           _path.Select(p => p.Data).ToList(), _graph, _dist);
         _reach      = GraphAnalysis.ReachabilityHistogram(_dist);
+        _forced     = GraphAnalysis.ForcedNodes(_graph, _depths, _dist, _start.Data, _optimal);
+        _distinctStrategies = GraphAnalysis.DistinctFirstMoves(_graph, _dist, _start.Data, _optimal);
+        _rh         = RushHourMetrics.Analyze(_def, _path);
 
         GraphMetricsCsv.Append(new GraphAnalysis.GraphMetrics
         {
@@ -98,6 +104,12 @@ public class GraphManager : MonoBehaviour
                     m.mobility > 0 ? (double)m.productive / m.mobility : 0.0) : 0f,
             SubgraphSize   = _optimal + 1,
             BottleneckCount= _bottlenecks.Count,
+            CounterintuitiveMoves = _rh.CounterintuitiveMoves,
+            CounterintuitiveFrac  = _rh.CounterintuitiveFrac,
+            DependencyDepth       = _rh.DependencyDepth,
+            DependencyWidth       = _rh.DependencyWidth,
+            ForcedNodeCount       = _forced.Count,
+            DistinctStrategies    = _distinctStrategies,
         }, string.IsNullOrEmpty(CrossSceneData.PuzzleId)
               ? _start.Data.ToString() : CrossSceneData.PuzzleId);
 
@@ -124,9 +136,10 @@ public class GraphManager : MonoBehaviour
 
         switch (v)
         {
-            case ViewMode.PathChain:         BuildPathChain();   break;
+            case ViewMode.PathChain:         BuildPathChain();     break;
+            case ViewMode.DependencyDAG:     BuildDependencyDAG(); break;
             case ViewMode.MobilityProfile:   BuildMobilityChart(); break;
-            case ViewMode.Reachability:      BuildReachChart();  break;
+            case ViewMode.Reachability:      BuildReachChart();    break;
         }
 
         UpdateHUD();
@@ -202,6 +215,13 @@ public class GraphManager : MonoBehaviour
             // AHA tag below the car row for bottleneck states.
             if (isBottleneck)
                 MakeLabel("◆ AHA", new Vector3(x, botY - 0.55f, 0f), 0.34f, CKColor.AmberBright);
+
+            // Counterintuitive step: this move didn't reduce the greedy heuristic
+            // (you had to make it look worse). Marked in Coral above the node.
+            if (i > 0 && _rh.StepCounterintuitive != null
+                && i - 1 < _rh.StepCounterintuitive.Length
+                && _rh.StepCounterintuitive[i - 1])
+                MakeLabel("↩ against greedy", new Vector3(x, topY + 0.55f, 0f), 0.26f, CKColor.Coral);
         }
 
         // Edges
@@ -215,6 +235,67 @@ public class GraphManager : MonoBehaviour
             float mid = (startX + startX + totalWidth) * 0.5f;
             _cam.transform.position = new Vector3(mid, 0f, -Mathf.Max(12f, totalWidth * 0.6f));
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // View — Dependency DAG (the strongest research-backed predictor, ~0.82)
+    // -----------------------------------------------------------------------
+
+    private void BuildDependencyDAG()
+    {
+        var pieces = _rh.MovedPieces.OrderBy(p => _rh.DepRank.GetValueOrDefault(p, 1)).ToList();
+        if (pieces.Count == 0)
+        {
+            MakeLabel("No moving pieces.", Vector3.zero, 0.5f, CKColor.TextSecondary);
+            return;
+        }
+
+        // Layout: x = dependency rank (longest chain to this piece), y = spread
+        // within rank. Rank runs deep→shallow left→right so chains read as flow.
+        int maxRank = pieces.Max(p => _rh.DepRank.GetValueOrDefault(p, 1));
+        var byRank = pieces.GroupBy(p => _rh.DepRank.GetValueOrDefault(p, 1))
+                           .ToDictionary(g => g.Key, g => g.ToList());
+
+        var nodePos = new Dictionary<int, Vector3>();
+        const float xGap = 4.5f, yGap = 2.6f;
+        foreach (var grp in byRank)
+        {
+            var list = grp.Value;
+            float x = (grp.Key - 1) * xGap;
+            float y0 = (list.Count - 1) * yGap * 0.5f;
+            for (int j = 0; j < list.Count; j++)
+            {
+                int piece = list[j];
+                var pos = new Vector3(x, y0 - j * yGap, 0f);
+                nodePos[piece] = pos;
+
+                var node = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                node.transform.position   = pos;
+                node.transform.localScale = Vector3.one * 1.1f;
+                node.GetComponent<Renderer>().material.color =
+                    piece == BitboardSolver.GOAL_CAR_INDEX ? CKColor.Coral : CKColor.DataSeries(piece % 5);
+                _viewObjects.Add(node);
+
+                string tag = piece == BitboardSolver.GOAL_CAR_INDEX ? "★ Goal car" : $"Car {piece}";
+                MakeLabel(tag, pos + new Vector3(0, 0.9f, 0), 0.32f, CKColor.TextBright);
+            }
+        }
+
+        // Dependency edges A→B ("must move A before B").
+        foreach (var (a, b) in _rh.DepEdges)
+            if (nodePos.TryGetValue(a, out var pa) && nodePos.TryGetValue(b, out var pb))
+                MakeEdge(pa, pb, CKColor.TextPrimary, 0.06f);
+
+        // Callout — the metrics that best predict difficulty.
+        MakeLabel(
+            $"Dependency depth: {_rh.DependencyDepth}\n" +
+            $"Independent chains: {_rh.DependencyWidth}\n" +
+            $"(chain length ≈ Jarušek 0.82 difficulty predictor)",
+            new Vector3((maxRank) * xGap * 0.5f, -yGap * 2.4f, 0f), 0.34f, CKColor.TextSecondary);
+
+        if (_cam != null)
+            _cam.transform.position = new Vector3(
+                (maxRank - 1) * xGap * 0.5f, 0f, -Mathf.Max(12f, maxRank * xGap * 0.7f));
     }
 
     // -----------------------------------------------------------------------
@@ -322,17 +403,21 @@ public class GraphManager : MonoBehaviour
 
     private void UpdateHUD()
     {
+        // Order must match the ViewMode enum:
+        // PathChain, DependencyDAG, MobilityProfile, Reachability.
         string[] titles =
         {
             "Solution Path Chain",
+            "Dependency Structure",
             "Mobility Profile",
             "Reachability Histogram",
         };
         string[] subs =
         {
-            $"{_optimal + 1} nodes  |  {_bottlenecks.Count} bottleneck(s)  |  Aha nodes shown in amber",
+            $"{_optimal + 1} nodes  |  {_forced.Count} forced state(s)  |  {_rh.CounterintuitiveMoves} counterintuitive move(s)",
+            $"depth {_rh.DependencyDepth} · {_rh.DependencyWidth} independent chain(s)  |  best predictor of human difficulty (~0.82)",
             $"Mobility = legal moves available  |  Productive = moves that reduce distance to goal",
-            $"{_graph.Count:N0} reachable states  |  Optimal: {_optimal} moves  |  Deception: {(float)_graph.Count / _optimal:F0}×",
+            $"{_graph.Count:N0} reachable states  |  Optimal: {_optimal}  |  Strategies: {_distinctStrategies}  |  Deception: {(float)_graph.Count / _optimal:F0}×",
         };
         if (_titleText)    _titleText.text    = titles[(int)_view];
         if (_subtitleText) _subtitleText.text = subs[(int)_view];

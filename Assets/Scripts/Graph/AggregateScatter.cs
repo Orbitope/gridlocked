@@ -18,16 +18,20 @@ public class AggregateScatter : MonoBehaviour
 {
     private static readonly string[] Columns =
     {
-        "deception_ratio", "rating", "total_states", "optimal",
-        "min_mobility", "mean_productive_frac", "subgraph_size", "bottleneck_count",
+        // research-aligned first (defaults point at the strongest pairing)
+        "dependency_depth", "difficulty", "counterintuitive_moves", "counterintuitive_frac",
+        "dependency_width", "forced_node_count", "distinct_strategies", "satisfaction",
+        // static baseline family
+        "deception_ratio", "total_states", "optimal", "min_mobility",
+        "mean_productive_frac", "subgraph_size", "bottleneck_count",
     };
 
     private const float PlotW = 10f;
     private const float PlotH = 6f;
 
     private List<Dictionary<string, string>> _rows;
-    private int _xCol = 0; // deception_ratio
-    private int _yCol = 1; // rating
+    private int _xCol = 0; // dependency_depth (strongest predictor)
+    private int _yCol = 1; // difficulty
 
     private readonly List<GameObject> _plotObjects = new();
     private Camera _cam;
@@ -112,7 +116,7 @@ public class AggregateScatter : MonoBehaviour
         {
             if (!TryGet(row, Columns[_xCol], out float x)) continue;
             if (!TryGet(row, Columns[_yCol], out float y)) continue;
-            int rating = TryGet(row, "rating", out float rf) ? Mathf.RoundToInt(rf) : -1;
+            int rating = TryGet(row, "satisfaction", out float rf) ? Mathf.RoundToInt(rf) : -1;
 
             list.Add((x, y, rating));
             xMin = Mathf.Min(xMin, x); xMax = Mathf.Max(xMax, x);
