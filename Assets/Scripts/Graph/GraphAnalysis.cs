@@ -212,6 +212,56 @@ public static class GraphAnalysis
     }
 
     /// <summary>
+    /// Number of DISTINCT OPTIMAL SOLUTIONS — i.e. how many different shortest
+    /// paths lead from start to any goal state. 1 means the optimal solution is
+    /// unique; large values mean many equally-short routes.
+    ///
+    /// Counted by DP over the solution DAG (edges where depth[v]==depth[u]+1 and
+    /// both endpoints satisfy depth+dist==optimal). Saturates rather than
+    /// overflowing, since counts can explode combinatorially.
+    /// </summary>
+    public static long CountOptimalSolutions(
+        Dictionary<ulong, List<ulong>> graph,
+        Dictionary<ulong, int> depths,
+        Dictionary<ulong, int> dist,
+        ulong start, int optimal)
+    {
+        const long Cap = long.MaxValue / 4;
+
+        bool OnDag(ulong n) =>
+            depths.TryGetValue(n, out int d) && dist.TryGetValue(n, out int g) && d + g == optimal;
+
+        if (!OnDag(start)) return 0;
+
+        var order = depths.Where(kv => OnDag(kv.Key))
+                          .OrderBy(kv => kv.Value).Select(kv => kv.Key).ToList();
+
+        // paths start -> v, in increasing depth order.
+        var toV = new Dictionary<ulong, long> { [start] = 1 };
+        foreach (var u in order)
+        {
+            long cu = toV.GetValueOrDefault(u, 0);
+            if (cu == 0 || !graph.TryGetValue(u, out var succ)) continue;
+            foreach (var v in succ)
+                if (OnDag(v) && depths[v] == depths[u] + 1)
+                {
+                    long sum = toV.GetValueOrDefault(v, 0) + cu;
+                    toV[v] = sum > Cap ? Cap : sum;
+                }
+        }
+
+        // Total = paths arriving at any goal state (dist == 0).
+        long total = 0;
+        foreach (var kv in toV)
+            if (dist.GetValueOrDefault(kv.Key, -1) == 0)
+            {
+                total += kv.Value;
+                if (total > Cap) return Cap;
+            }
+        return total;
+    }
+
+    /// <summary>
     /// Number of genuinely different opening strategies: start-successors that lie
     /// on an optimal path (depth 1 and dist == optimal-1). 1 = "spherical" graph.
     /// </summary>

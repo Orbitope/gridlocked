@@ -49,7 +49,9 @@ Track hypotheses here as they form. Mark each as Supported / Refuted / Inconclus
 ---
 
 ### H5 — Dependency depth predicts difficulty better than any static metric
-**Status:** Untested (research-motivated — see Research grounding below)  
+**Status:** SUPPORTED against the objective proxy (optimal moves), across 4 puzzle
+types, n≈14k. `dependency_depth` ρ=0.61–0.83 vs `total_states` ρ≈0. NOT yet tested
+against *human* difficulty — that still needs the ThinkFun/Pelánek arm.  
 **Rationale:** Jarušek & Pelánek found problem *decomposition / dependency structure* is the strongest predictor of human difficulty (~0.82), far above solution length (~0.47) or state-space size. Our `dependency_depth` (longest "must-move-X-before-Y" chain from the solution) operationalizes this.  
 **What would support it:** `dependency_depth` correlates with felt difficulty more strongly than `deception_ratio` / `total_states` across our rated puzzles.  
 **What would refute it:** Static metrics predict our ratings as well or better.
@@ -96,7 +98,79 @@ Sources:
 
 ---
 
-## RESULTS — corpus run, n=400 random (2026-07-24)
+## RESULTS — cross-type corpus, n≈14,000 (2026-07-24)
+
+Four puzzle types analyzed headlessly via `CorpusLab` / `HexSolverLab` (both link
+the game's own solver + `GraphAnalysis`, so identical code across geometries):
+square (Fogleman DB, n=12,500) and hex at low/med/high density (n=600/600/463).
+
+**Solver validated (square only):** every sampled square puzzle's computed optimal
+matched Fogleman's reference minimum move count. Hex has NO external reference —
+its move counts rest solely on our own solver (passed Gate 1/2, weaker evidence).
+
+### Headline: structure predicts difficulty, size does not — across all four types
+
+Spearman ρ vs optimal move count (an OBJECTIVE proxy, **not** human difficulty):
+
+| metric | square | hex_low | hex_med | hex_high |
+|---|---|---|---|---|
+| **dependency_depth** (path-avg) | 0.607 | 0.655 | 0.764 | **0.831** |
+| **counterintuitive_frac** | 0.435 | 0.529 | 0.684 | 0.754 |
+| optimal_solutions | 0.462 | 0.560 | 0.625 | 0.684 |
+| **total_states** | 0.146 | 0.029 | −0.105 | 0.116 |
+| dependency_width | −0.335 | −0.103 | −0.282 | −0.500 |
+| forced_node_count | 0.234 | 0.027 | 0.076 | 0.061 |
+
+1. **Size carries no signal, anywhere.** `total_states` is ≈0 (even negative) in
+   all four types. Two geometries, four densities → graph size does not predict
+   difficulty. This is the robust negative result.
+2. **Dependency depth is the top predictor in every type** (0.61–0.83).
+3. **Denser boards make structure matter MORE** (hex 0.66→0.76→0.83 as pieces go
+   up). Crowding is what turns a sliding puzzle from mechanical into deep.
+
+### Puzzle-type profiles
+
+| type | pieces | optimal | total_states | median opt-solutions | dep_depth |
+|---|---|---|---|---|---|
+| hex_low | 6.9 | 4.3 | 1,872 | 5 | 2.33 |
+| hex_med | 9.7 | 5.5 | 6,058 | 6 | 2.96 |
+| hex_high | 12.2 | 7.5 | 8,517 | 18 | 3.96 |
+| square | 10.4 | 12.2 | 4,643 | 484 | 6.44 |
+
+Hex is structurally shallower at every density — even dense hex (7.5-move
+solutions) doesn't reach square's depth (12.2 moves). **The third axis drains
+tension** (confirms the original Gate 3 "mushiness" worry). Dense hex was also
+hard to fill solvably (463/600, 36k attempts) — the board self-limits.
+
+### Two corrections we had to make (methodology, keep for the writeup)
+
+- **Optimal solutions are almost never unique.** Square median = 484 distinct
+  shortest solutions; only 0.5% are unique. Path-sampling showed these are
+  GENUINELY different (only 7.7% pure reorderings; ~7 distinct move-multisets per
+  puzzle), and single-path `dependency_depth` varied by ≥2 in 40% of puzzles. Fix:
+  `dependency_depth` is now **path-averaged over 8 sampled optimal paths**. This
+  *raised* the square ρ (0.558 single → 0.598 averaged), so the instability was
+  noise, not a phantom signal.
+- **Unique vs multi, length-matched (Simpson's paradox).** POOLED, unique- and
+  multi-solution puzzles look structurally identical (dep≈6.7 both). LENGTH-MATCHED,
+  unique-solution puzzles are ~2× deeper and more counterintuitive at every move
+  count (8/8 buckets), because multi-solution puzzles are simply longer (14.1 vs
+  9.2 moves) and length inflates depth. The pooled view is misleading.
+
+### Three metrics that misled us this session (a theme for the article)
+
+1. `deception_ratio` (= total_states/optimal) is definitionally entangled with the
+   target — its ρ≈0 was not clean evidence.
+2. `counterintuitive_moves` (raw count) inflates with solution length; the honest
+   figure is `counterintuitive_frac`.
+3. `dependency_depth` from one arbitrary BFS path was unstable; needed averaging.
+
+The naive aggregate was wrong in a specific, repeatable way three times. That's
+the story: *measuring puzzle difficulty is a minefield of confounds.*
+
+---
+
+## RESULTS — corpus run, n=400 random (2026-07-24) [superseded by n≈14k above]
 
 Unbiased random sample from Fogleman's complete 2,577,412-puzzle database
 (wall-free, length-2 primary subset). Analyzed headlessly via `CorpusLab`, which
