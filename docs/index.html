@@ -710,6 +710,30 @@ function drawHex(svg,pieces,exit,size,ox,oy,opts){
       path.setAttribute('fill',i===0?'#FF5E3A':['#6B7A8D','#C49A3C','#9A7AB0','#C47A5A','#7D9A6A','#6B7A8D','#C49A3C','#9A7AB0'][i%8]);
       g.appendChild(path);});
     svg.appendChild(g);});
+
+  /* Exit marker goes on TOP of the pieces — a piece often starts parked on the
+     goal cell, and if the marker is underneath you can't see where you're
+     aiming until you happen to move that piece. Outline + outside label. */
+  if(exit){
+    var ep=hexPt(exit[0],exit[1],size,ox,oy);
+    var ring=document.createElementNS(ns,'path');
+    ring.setAttribute('d',hexPath(ep.x,ep.y,size*0.92));
+    ring.setAttribute('fill','none');
+    ring.setAttribute('stroke','#7D9A6A');
+    ring.setAttribute('stroke-width','2.5');
+    ring.setAttribute('stroke-dasharray','5 3');
+    ring.setAttribute('pointer-events','none');
+    svg.appendChild(ring);
+
+    var lab=document.createElementNS(ns,'text');
+    lab.setAttribute('x',ep.x+size*1.15);lab.setAttribute('y',ep.y+4);
+    lab.setAttribute('fill','#7D9A6A');lab.setAttribute('font-size','11');
+    lab.setAttribute('font-family',"'JetBrains Mono',monospace");
+    lab.setAttribute('letter-spacing','.08em');
+    lab.setAttribute('pointer-events','none');
+    lab.textContent='GOAL';
+    svg.appendChild(lab);
+  }
 }
 
 /* --- widget: three axes --- */
