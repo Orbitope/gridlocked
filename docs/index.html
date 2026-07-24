@@ -558,7 +558,7 @@ function solved(cars){return cars[0].pos===4;}
   var svg=document.getElementById('dist');
   if(!svg||!window.DIST||!window.DIST.square)return;
   var D=window.DIST.square, B=D.bins, ns='http://www.w3.org/2000/svg';
-  var W=620,H=330,L=54,R=52,T=22,Bm=54;
+  var W=620,H=330,L=54,R=52,T=34,Bm=54;
   var iw=W-L-R, ih=H-T-Bm;
   var maxN=Math.max.apply(null,B.map(function(b){return b.n;}));
   var withM=B.filter(function(b){return b.m!=null;});
@@ -593,6 +593,14 @@ function solved(cars){return cars[0].pos===4;}
     fill:'none',stroke:'#E8C068','stroke-width':2.5,'stroke-linejoin':'round'}));
   pts.forEach(function(p){add(mk('circle',{cx:p[0],cy:p[1],r:3,fill:'#E8C068'}));});
 
+  // in-chart legend — the header/caption explain it too, but this is the
+  // thing to read while your eyes are actually on the lines.
+  add(mk('rect',{x:L,y:2,width:12,height:12,rx:2,fill:'#3f4a56'}));
+  add(txt(L+18,12,'puzzles of this size (left scale)','#9AAABB',10.5));
+  add(mk('line',{x1:L+230,y1:8,x2:L+248,y2:8,stroke:'#E8C068','stroke-width':2.5}));
+  add(mk('circle',{cx:L+239,cy:8,r:3,fill:'#E8C068'}));
+  add(txt(L+254,12,'avg. moves to solve, that size (right scale)','#E8C068',10.5));
+
   // x axis: powers of ten
   for(var e=1;e<=5;e++){
     var f=(e-D.lo)/(D.hi-D.lo);
@@ -603,10 +611,9 @@ function solved(cars){return cars[0].pos===4;}
   }
   add(txt(L+iw/2,H-14,'positions the puzzle can reach  (log scale) →','#6A6358',11,'middle'));
 
-  // y axes
+  // y axes (what each scale is is named in the legend above; these are just ticks)
   add(txt(L-8,T+8,String(maxN),'#6A6358',10,'end'));
   add(txt(L-8,T+ih,'0','#6A6358',10,'end'));
-  add(txt(L-8,T-8,'puzzles','#6A6358',10,'end'));
   add(txt(W-R+8,T+ih*(1-(hiM*0.87-loM)/(hiM-loM)),Math.round(hiM*0.87)+' mv','#E8C068',10));
   add(txt(W-R+8,T+ih*(1-(5-loM)/(hiM-loM)),'5 mv','#E8C068',10));
   add(txt(W-R+8,T-8,'moves','#E8C068',10));
