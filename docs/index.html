@@ -184,14 +184,15 @@
   <div class="eyebrow">The measurement</div>
   <h2>Every puzzle contains a hidden map.</h2>
   <p>From the starting position you might have eight legal moves. Each leads to a position with its own eight. Follow that outward and you get every arrangement the puzzle can ever reach — its <b>state space</b>.</p>
-  <p>That number is the puzzle's <span class="amber">size</span>. It's the first thing anyone measures, because it feels like it should mean something: a puzzle with 11,000 possible positions has to be harder than one with 400. Watch it grow.</p>
+  <p>That number is the puzzle's <span class="amber">size</span>. It's the first thing anyone measures, because it feels like it should mean something: a puzzle with 11,000 possible positions has to be harder than one with 400.</p>
+  <p>Here's every puzzle in the set, sorted by size. The scale is logarithmic — each step right is <b>ten times bigger</b>.</p>
 </section>
 
-<figure class="fig narrow reveal">
-  <div class="wdg-head"><span>Positions reachable within <b id="fan_k">1</b> move</span><span class="tag idle" id="fan_n">1</span></div>
-  <svg class="bsvg" id="b_fan" viewBox="0 0 300 300" style="max-width:340px"></svg>
-  <div style="padding:0 20px 8px"><svg id="fanbar" viewBox="0 0 400 90" style="width:100%;display:block"></svg></div>
-  <div class="wdg-foot"><span>This puzzle's full state space: <b style="color:var(--amber-bright)">11,487 positions</b></span><button class="btn" id="fan_go">Expand</button></div>
+<figure class="fig reveal">
+  <div class="wdg-head"><span>Distribution of puzzle size · <b>12,500 square puzzles</b></span>
+    <span class="tag idle">bars = how many puzzles · line = how hard they were</span></div>
+  <svg id="dist" viewBox="0 0 620 330" style="width:100%;display:block"></svg>
+  <div class="cap">Puzzle size spans <b style="color:var(--amber-bright)">four and a half orders of magnitude</b> — from 11 positions to 293,765. If size drove difficulty, the amber line would climb steeply from left to right. It barely moves: a puzzle a thousand times larger takes about two more moves.</div>
 </figure>
 
 <div class="rule"></div>
@@ -200,24 +201,24 @@
 <section class="beat">
   <div class="eyebrow">The problem</div>
   <h2>Size is a liar.</h2>
-  <p>Here are two real puzzles from the set. The left one can reach <b>11,487</b> positions. The right one, <b>422</b> — twenty-seven times smaller.</p>
-  <p>The big one is solved in <span class="sage">6 moves</span>. The small one takes <span class="coral">17</span>.</p>
+  <p>First, what “difficulty” means here: <b>the fewest moves a perfect solver needs</b>. More moves, harder puzzle. It's a proxy for human struggle, not the same thing — but it's objective, and we can compute it exactly for every puzzle.</p>
+  <p>So compare two real puzzles. The left one can reach <b>11,487</b> positions; the right one only <b>422</b> — twenty-seven times smaller. If size drove difficulty, the left should be far harder.</p>
 </section>
 
 <figure class="fig reveal">
   <div class="two">
     <div>
-      <h4>Vast, and easy</h4>
-      <div class="stats"><span>states <b>11,487</b></span><span>solved in <b class="big">6</b></span></div>
+      <h4>The big one</h4>
+      <div class="stats"><span>11,487 positions</span><span><b class="big" style="color:var(--sage)">6</b> moves</span></div>
       <svg class="bsvg" id="b_big" viewBox="0 0 300 300" style="max-width:280px"></svg>
     </div>
     <div>
-      <h4>Cramped, and hard</h4>
-      <div class="stats"><span>states <b>422</b></span><span>solved in <b class="big">17</b></span></div>
+      <h4>The small one</h4>
+      <div class="stats"><span>422 positions</span><span><b class="big" style="color:var(--coral)">17</b> moves</span></div>
       <svg class="bsvg" id="b_small" viewBox="0 0 300 300" style="max-width:280px"></svg>
     </div>
   </div>
-  <div class="cap">Both real puzzles, both solved exhaustively. A 27× difference in size, and the smaller one is nearly three times longer to solve.</div>
+  <div class="cap">It's the other way round. The puzzle with 27× less room to move takes nearly <b style="color:var(--coral)">three times as many moves</b> to solve.</div>
 </figure>
 
 <section class="beat">
@@ -415,6 +416,7 @@
 <script src="puzzles.js"></script>
 <script src="hex.js"></script>
 <script src="data.js"></script>
+<script src="dist.js"></script>
 <script>
 (function(){
 "use strict";
@@ -475,10 +477,11 @@ function drawBoard(svg,cars,opts){
     r.setAttribute('x',PAD+x*S);r.setAttribute('y',PAD+(5-y)*S);
     r.setAttribute('width',S);r.setAttribute('height',S);r.setAttribute('rx',3);
     svg.appendChild(r);}
-  // exit notch on the right of row 2 (y=2, where A lives)
+  // Exit sits on the red car's own row — derive it, never hardcode.
+  var exitY=(cars[0]&&cars[0].horiz)?cars[0].fixed:3;
   var e=document.createElementNS(ns,'text');
   e.setAttribute('class','exitl');e.setAttribute('x',PAD+6*S+2);
-  e.setAttribute('y',PAD+(5-2)*S+S/2+4);e.textContent='→';
+  e.setAttribute('y',PAD+(5-exitY)*S+S/2+4);e.textContent='→';
   svg.appendChild(e);
 
   cars.forEach(function(c,i){
@@ -547,40 +550,70 @@ function solved(cars){return cars[0].pos===4;}
     redraw();makeDraggable(svg,cars,onMove);};
 })();
 
-/* --- widget: state-space fan-out (real reachable counts) --- */
+/* --- chart: log10 distribution of puzzle size, with mean difficulty overlay ---
+   Bars = how many puzzles are that size. Amber line = how many moves they took.
+   The whole point is that the bars span 4+ orders of magnitude while the line
+   stays nearly flat. Real bins over all 12,500 square puzzles. */
 (function(){
-  var pz=P[0]; if(!pz)return;
-  var svg=document.getElementById('b_fan'),bar=document.getElementById('fanbar'),
-      kEl=document.getElementById('fan_k'),nEl=document.getElementById('fan_n'),
-      btn=document.getElementById('fan_go'),k=1,fan=pz.fan;
-  drawBoard(svg,parse(pz.b));
-  function render(){
-    var ns='http://www.w3.org/2000/svg';
-    while(bar.firstChild)bar.removeChild(bar.firstChild);
-    var max=fan[fan.length-1];
-    for(var i=0;i<fan.length;i++){
-      var h=Math.max(2,fan[i]/max*60), on=i<k;
-      var r=document.createElementNS(ns,'rect');
-      r.setAttribute('x',12+i*64);r.setAttribute('y',68-h);
-      r.setAttribute('width',44);r.setAttribute('height',h);r.setAttribute('rx',2);
-      r.setAttribute('fill',on?'#E8C068':'#2a2820');
-      bar.appendChild(r);
-      var t=document.createElementNS(ns,'text');
-      t.setAttribute('x',34+i*64);t.setAttribute('y',82);
-      t.setAttribute('fill','#6A6358');t.setAttribute('font-size','10');
-      t.setAttribute('text-anchor','middle');t.setAttribute('font-family',"'JetBrains Mono',monospace");
-      t.textContent=i+' mv';bar.appendChild(t);
-      if(on){var v=document.createElementNS(ns,'text');
-        v.setAttribute('x',34+i*64);v.setAttribute('y',66-h);
-        v.setAttribute('fill','#E8C068');v.setAttribute('font-size','10');
-        v.setAttribute('text-anchor','middle');v.setAttribute('font-family',"'JetBrains Mono',monospace");
-        v.textContent=fan[i];bar.appendChild(v);}
-    }
-    kEl.textContent=k-1;nEl.textContent=fan[k-1].toLocaleString();
+  var svg=document.getElementById('dist');
+  if(!svg||!window.DIST||!window.DIST.square)return;
+  var D=window.DIST.square, B=D.bins, ns='http://www.w3.org/2000/svg';
+  var W=620,H=330,L=54,R=52,T=22,Bm=54;
+  var iw=W-L-R, ih=H-T-Bm;
+  var maxN=Math.max.apply(null,B.map(function(b){return b.n;}));
+  var withM=B.filter(function(b){return b.m!=null;});
+  var loM=0, hiM=Math.max.apply(null,withM.map(function(b){return b.m;}))*1.15;
+
+  function add(el){svg.appendChild(el);}
+  function mk(t,attrs){var e=document.createElementNS(ns,t);
+    for(var k in attrs)e.setAttribute(k,attrs[k]);return e;}
+  function txt(x,y,s,fill,size,anchor){
+    var e=mk('text',{x:x,y:y,fill:fill||'#6A6358','font-size':size||11,
+      'font-family':"'JetBrains Mono',monospace"});
+    if(anchor)e.setAttribute('text-anchor',anchor);
+    e.textContent=s;return e;}
+
+  // horizontal guides
+  [0,.25,.5,.75,1].forEach(function(f){
+    add(mk('line',{x1:L,y1:T+ih*(1-f),x2:W-R,y2:T+ih*(1-f),
+      stroke:'#2a2820','stroke-width':1}));});
+
+  // bars (count)
+  var bw=iw/B.length;
+  B.forEach(function(b,i){
+    var h=b.n/maxN*ih;
+    add(mk('rect',{x:L+i*bw+1.5,y:T+ih-h,width:bw-3,height:h,rx:2,
+      fill:'#3f4a56',opacity:.9}));});
+
+  // mean-difficulty line + dots
+  var pts=[];
+  B.forEach(function(b,i){ if(b.m==null)return;
+    pts.push([L+i*bw+bw/2, T+ih*(1-(b.m-loM)/(hiM-loM))]);});
+  add(mk('path',{d:pts.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(''),
+    fill:'none',stroke:'#E8C068','stroke-width':2.5,'stroke-linejoin':'round'}));
+  pts.forEach(function(p){add(mk('circle',{cx:p[0],cy:p[1],r:3,fill:'#E8C068'}));});
+
+  // x axis: powers of ten
+  for(var e=1;e<=5;e++){
+    var f=(e-D.lo)/(D.hi-D.lo);
+    if(f<0||f>1)continue;
+    var x=L+f*iw;
+    add(mk('line',{x1:x,y1:T+ih,x2:x,y2:T+ih+5,stroke:'#3d3a30','stroke-width':1}));
+    add(txt(x,T+ih+19,'10^'+e,'#6A6358',10,'middle'));
   }
-  render();
-  btn.onclick=function(){k=k>=fan.length?1:k+1;render();
-    btn.textContent=k>=fan.length?'Restart':'Expand';};
+  add(txt(L+iw/2,H-14,'positions the puzzle can reach  (log scale) →','#6A6358',11,'middle'));
+
+  // y axes
+  add(txt(L-8,T+8,String(maxN),'#6A6358',10,'end'));
+  add(txt(L-8,T+ih,'0','#6A6358',10,'end'));
+  add(txt(L-8,T-8,'puzzles','#6A6358',10,'end'));
+  add(txt(W-R+8,T+ih*(1-(hiM*0.87-loM)/(hiM-loM)),Math.round(hiM*0.87)+' mv','#E8C068',10));
+  add(txt(W-R+8,T+ih*(1-(5-loM)/(hiM-loM)),'5 mv','#E8C068',10));
+  add(txt(W-R+8,T-8,'moves','#E8C068',10));
+
+  // callout: the flat stretch
+  add(txt(L+iw*0.30,T+14,'← 1,000× more positions →','#6A6358',10));
+  add(txt(L+iw*0.30,T+28,'≈ 2 more moves','#E8C068',10));
 })();
 
 /* --- static contrast boards --- */
@@ -739,28 +772,45 @@ function drawHex(svg,pieces,exit,size,ox,oy,opts){
     p.c=nc;return true;
   }
   function render(){drawHex(svg,pieces,pz.exit,size,ox,oy);attach();}
+
+  /* Drag slides continuously, like the square board: project the pointer onto
+     the piece's axis, convert to a cell count, and step that far or until
+     blocked. All three hex axes have the same step length (size*sqrt(3)). */
+  var STEP=size*Math.sqrt(3);
   function attach(){
     svg.querySelectorAll('g[data-i]').forEach(function(g){
       g.addEventListener('pointerdown',function(ev){
         var i=+g.getAttribute('data-i');
+        var d=DELTA[pieces[i].ax];
+        // unit vector of this axis in screen space
+        var vx=size*1.5*d[0], vy=size*Math.sqrt(3)*(d[1]+d[0]*0.5);
+        var vlen=Math.hypot(vx,vy)||1; vx/=vlen; vy/=vlen;
         var pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;
         var st=pt.matrixTransform(svg.getScreenCTM().inverse());
-        function up(ev2){
-          removeEventListener('pointermove',mv);removeEventListener('pointerup',up);
-          var pt2=svg.createSVGPoint();pt2.x=ev2.clientX;pt2.y=ev2.clientY;
-          var en=pt2.matrixTransform(svg.getScreenCTM().inverse());
-          var dx=en.x-st.x,dy=en.y-st.y;
-          if(Math.hypot(dx,dy)<10)return;
-          var d=DELTA[pieces[i].ax];
-          var vx=size*1.5*d[0], vy=size*Math.sqrt(3)*(d[1]+d[0]*0.5);
-          var dir=(dx*vx+dy*vy)>0?1:-1;
-          if(slide(i,dir)){moves++;f.textContent='Moves: '+moves;
-            var red=pieces[0].c.some(function(c){return c[0]===pz.exit[0]&&c[1]===pz.exit[1];});
-            if(red){tag.textContent='SOLVED';tag.className='tag ok';}}
+        var startCells=pieces[i].c.map(function(c){return [c[0],c[1]];});
+        var applied=0;
+
+        function mv(e2){
+          var p2=svg.createSVGPoint();p2.x=e2.clientX;p2.y=e2.clientY;
+          var cur=p2.matrixTransform(svg.getScreenCTM().inverse());
+          var proj=(cur.x-st.x)*vx+(cur.y-st.y)*vy;   // px along the axis
+          var want=Math.round(proj/STEP);              // in cells
+          if(want===applied){e2.preventDefault();return;}
+          pieces[i].c=startCells.map(function(c){return [c[0],c[1]];});
+          applied=0;
+          var dir=want>0?1:-1;
+          for(var k=0;k<Math.abs(want);k++){ if(!slide(i,dir))break; applied+=dir; }
           render();
-          ev2.preventDefault();
+          e2.preventDefault();
         }
-        function mv(e){e.preventDefault();}
+        function up(){
+          removeEventListener('pointermove',mv);removeEventListener('pointerup',up);
+          if(applied!==0){
+            moves++;f.textContent='Moves: '+moves;
+            var red=pieces[0].c.some(function(c){return c[0]===pz.exit[0]&&c[1]===pz.exit[1];});
+            if(red){tag.textContent='SOLVED';tag.className='tag ok';}
+          }
+        }
         addEventListener('pointermove',mv);addEventListener('pointerup',up);
         ev.preventDefault();
       });
