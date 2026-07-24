@@ -20,6 +20,9 @@
 # macOS
 .DS_Store
 
+# Downloaded research corpora (Fogleman DB is 110MB decompressed)
+/Research/corpora/
+
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta
 

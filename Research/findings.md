@@ -96,6 +96,74 @@ Sources:
 
 ---
 
+## RESULTS — corpus run, n=400 random (2026-07-24)
+
+Unbiased random sample from Fogleman's complete 2,577,412-puzzle database
+(wall-free, length-2 primary subset). Analyzed headlessly via `CorpusLab`, which
+links the game's own solver/metrics source.
+
+**Solver validated:** 460/460 puzzles matched Fogleman's reference minimum move
+count exactly. Our move semantics are provably correct against an independent source.
+
+### Spearman ρ vs optimal move count
+
+| metric | ρ | note |
+|---|---|---|
+| `counterintuitive_moves` | 0.917 | ⚠ partly mechanical — see caveat |
+| `car_count` | 0.557 | |
+| `dependency_depth` | 0.539 | |
+| `counterintuitive_frac` | 0.421 | normalized version of the above |
+| `min_mobility` | −0.285 | |
+| `forced_node_count` | 0.265 | |
+| `total_states` | 0.156 | **size barely matters** |
+| `deception_ratio` | −0.049 | ⚠ definitionally entangled — see caveat |
+
+### Two methodological caveats (do not publish without these)
+
+1. **`deception_ratio` is entangled with the target.** It is defined as
+   `total_states / optimal`, so correlating it *against* `optimal` is biased
+   toward zero/negative by construction. Its ρ≈0 is **not** clean evidence.
+   The clean size result is `total_states` ρ=0.156 — that one stands.
+2. **`counterintuitive_moves` is a count along the solution path**, so longer
+   solutions mechanically permit more of them. The honest figure is the
+   normalized `counterintuitive_frac` at 0.421.
+
+### Structural spread within matched difficulty
+
+Among puzzles with *identical* optimal length, structure varies widely:
+
+| optimal | n | dependency_depth range (mean) |
+|---|---|---|
+| 8 | 34 | 3–8 (5.38) |
+| 10 | 62 | 3–9 (6.06) |
+| 12 | 50 | 4–10 (6.64) |
+
+**"10 moves" is not one puzzle — it's a family of structurally different ones.**
+That spread is the headroom a human/curated arm would explain.
+
+### Hypothesis status
+
+- **H1 (deception ratio predicts difficulty)** — **Not supported, but not
+  properly tested.** Size-based metrics barely track the objective proxy
+  (`total_states` ρ=0.156). BUT we correlated against *optimal moves*, not
+  *felt* difficulty, which is what H1 actually claims. Needs the human arm.
+- **H2 / H3 (bottlenecks = aha / one bottleneck = satisfying)** — Untested;
+  `forced_node_count` ρ=0.265 against the proxy is weak but H2/H3 are about
+  subjective experience, which this run can't touch.
+- **H4 (shape distinguishes tiers)** — Partially supported: structure varies
+  substantially within matched length.
+- **H5 (dependency structure beats static metrics)** — Supported against the
+  objective proxy (0.54 vs 0.16), consistent with the literature.
+
+### What this run CANNOT say
+
+It correlates metrics against **optimal move count, an objective proxy** — not
+human difficulty. Nothing here establishes what feels hard or satisfying. The
+next step is a human-labeled arm (ThinkFun's 40 tiered challenge cards, or
+Pelánek's solving-time data).
+
+---
+
 ## Emerging patterns
 
 *Add observations here as entries accumulate in puzzle_analysis.md. Minimum 5 puzzles before drawing conclusions.*
