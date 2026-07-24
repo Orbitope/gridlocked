@@ -1,572 +1,858 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Gridlocked — A Bigger Maze Isn't a Harder Maze</title>
-  <meta name="description" content="We solved ~14,000 sliding-block puzzles to find what makes one hard. The size of the puzzle predicts almost nothing. The way its pieces depend on each other predicts nearly everything.">
-  <meta property="og:title" content="Gridlocked — A Bigger Maze Isn't a Harder Maze">
-  <meta property="og:description" content="An interactive study of what actually makes a Rush Hour puzzle hard.">
-  <meta property="og:type" content="article">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{
-      --void:#111009; --surface:#1a1812; --raised:#211e17; --border:#2a2820;
-      --amber:#C49A3C; --amber-bright:#E8C068;
-      --steel:#6B7A8D; --steel-bright:#9AAABB;
-      --mauve:#9A7AB0; --sage:#7D9A6A; --terra:#C47A5A; --coral:#FF5E3A;
-      --text-bright:#EDE8DC; --text-primary:#C8C2B4; --text-muted:#6A6358;
-      --font-display:'Rajdhani',sans-serif; --font-mono:'JetBrains Mono',monospace;
-    }
-    html{scroll-behavior:smooth}
-    @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-    body{background:var(--void);color:var(--text-primary);font-family:var(--font-mono);
-      -webkit-font-smoothing:antialiased;line-height:1.7}
-    body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
-      background-image:radial-gradient(circle,rgba(154,170,187,.10) 1px,transparent 1px);
-      background-size:48px 48px}
-    body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
-      background:radial-gradient(120% 120% at 50% 30%,rgba(0,0,0,0) 45%,rgba(0,0,0,.6) 100%)}
-    .wrap{position:relative;z-index:1}
-    .progress{position:fixed;top:0;left:0;height:2px;width:0;z-index:50;
-      background:linear-gradient(90deg,var(--amber),var(--amber-bright))}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gridlocked — A Bigger Maze Isn't a Harder Maze</title>
+<meta name="description" content="14,000 solved sliding-block puzzles. The size of a puzzle predicts almost nothing about its difficulty. What the pieces demand of each other predicts nearly everything — and a three-axis hex board tests whether that's universal.">
+<meta property="og:title" content="Gridlocked — A Bigger Maze Isn't a Harder Maze">
+<meta property="og:description" content="An interactive study of what actually makes a sliding-block puzzle hard.">
+<meta property="og:type" content="article">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --void:#111009; --surface:#1a1812; --raised:#211e17; --border:#2a2820;
+    --amber:#C49A3C; --amber-bright:#E8C068;
+    --steel:#6B7A8D; --steel-bright:#9AAABB;
+    --mauve:#9A7AB0; --sage:#7D9A6A; --terra:#C47A5A; --coral:#FF5E3A;
+    --text-bright:#EDE8DC; --text-primary:#C8C2B4; --text-muted:#6A6358;
+    --font-display:'Rajdhani',sans-serif; --font-mono:'JetBrains Mono',monospace;
+  }
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{background:var(--void);color:var(--text-primary);font-family:var(--font-mono);
+    -webkit-font-smoothing:antialiased;line-height:1.7}
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:radial-gradient(circle,rgba(154,170,187,.10) 1px,transparent 1px);background-size:48px 48px}
+  body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(120% 120% at 50% 30%,rgba(0,0,0,0) 45%,rgba(0,0,0,.6) 100%)}
+  .wrap{position:relative;z-index:1}
+  .progress{position:fixed;top:0;left:0;height:2px;width:0;z-index:50;
+    background:linear-gradient(90deg,var(--amber),var(--amber-bright))}
 
-    /* hero */
-    .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;
-      justify-content:center;text-align:center;padding:80px 24px}
-    .kicker{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--text-muted);margin-bottom:22px}
-    .hero h1{font-family:var(--font-display);font-weight:700;font-size:clamp(36px,8vw,84px);
-      line-height:1.02;color:var(--text-bright);letter-spacing:.005em;max-width:15ch}
-    .hero h1 .strike{color:var(--text-muted);text-decoration:line-through;text-decoration-thickness:.05em}
-    .hero h1 .accent{color:var(--amber-bright)}
-    .hero .sub{margin-top:24px;max-width:56ch;font-size:14px;color:var(--text-muted);letter-spacing:.02em;line-height:1.75}
-    .hero .sub b{color:var(--text-primary);font-weight:500}
-    .scroll-cue{margin-top:46px;font-size:11px;letter-spacing:.2em;color:var(--text-muted);
-      text-transform:uppercase;animation:bob 2s ease-in-out infinite}
-    @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
-    @media (prefers-reduced-motion:reduce){.scroll-cue{animation:none}}
+  .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 24px}
+  .kicker{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--text-muted);margin-bottom:22px}
+  .hero h1{font-family:var(--font-display);font-weight:700;font-size:clamp(36px,8vw,84px);line-height:1.02;color:var(--text-bright);max-width:15ch}
+  .hero h1 .strike{color:var(--text-muted);text-decoration:line-through;text-decoration-thickness:.05em}
+  .hero h1 .accent{color:var(--amber-bright)}
+  .hero .sub{margin-top:24px;max-width:58ch;font-size:14px;color:var(--text-muted);line-height:1.75}
+  .hero .sub b{color:var(--text-primary);font-weight:500}
+  .scroll-cue{margin-top:46px;font-size:11px;letter-spacing:.2em;color:var(--text-muted);text-transform:uppercase;animation:bob 2s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+  @media (prefers-reduced-motion:reduce){.scroll-cue{animation:none}}
 
-    /* beats */
-    .beat{max-width:680px;margin:0 auto;padding:13vh 24px 4vh}
-    .beat .eyebrow{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--amber);margin-bottom:18px}
-    .beat .eyebrow.win{color:var(--sage)}
-    .beat h2{font-family:var(--font-display);font-weight:600;font-size:clamp(26px,4.5vw,40px);
-      color:var(--text-bright);line-height:1.12;margin-bottom:20px}
-    .beat p{font-size:15px;color:var(--text-primary);margin-bottom:16px}
-    .beat p .dim{color:var(--text-muted)} .beat p .amber{color:var(--amber-bright)}
-    .beat p .sage{color:var(--sage)} .beat p .coral{color:var(--coral)} .beat p .steel{color:var(--steel-bright)}
-    .beat p b{color:var(--text-bright);font-weight:500}
+  .beat{max-width:680px;margin:0 auto;padding:12vh 24px 3vh}
+  .beat .eyebrow{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--amber);margin-bottom:18px}
+  .beat .eyebrow.win{color:var(--sage)}
+  .beat h2{font-family:var(--font-display);font-weight:600;font-size:clamp(26px,4.5vw,40px);color:var(--text-bright);line-height:1.12;margin-bottom:20px}
+  .beat p{font-size:15px;color:var(--text-primary);margin-bottom:16px}
+  .beat p b{color:var(--text-bright);font-weight:500}
+  .beat .amber{color:var(--amber-bright)} .beat .sage{color:var(--sage)}
+  .beat .coral{color:var(--coral)} .beat .steel{color:var(--steel-bright)} .beat .dim{color:var(--text-muted)}
+  .rule{width:1px;height:60px;margin:0 auto;background:linear-gradient(transparent,var(--border),transparent)}
 
-    .rule{width:1px;height:60px;margin:0 auto;background:linear-gradient(transparent,var(--border),transparent)}
+  .fig{max-width:940px;margin:34px auto;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#0d0c07}
+  .fig figcaption,.fig .cap{font-size:11px;color:var(--text-muted);padding:11px 16px;border-top:1px solid var(--border);letter-spacing:.03em}
+  .fig.narrow{max-width:660px}
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
 
-    /* figure + reveal */
-    .fig{max-width:940px;margin:34px auto;border:1px solid var(--border);border-radius:6px;
-      overflow:hidden;background:#0d0c07}
-    .fig figcaption{font-size:11px;color:var(--text-muted);padding:11px 16px;border-top:1px solid var(--border);letter-spacing:.03em}
-    .fig.narrow{max-width:720px}
-    .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
-    .reveal.in{opacity:1;transform:none}
-    @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
+  .wdg-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;
+    border-bottom:1px solid var(--border);font-size:12px;color:var(--text-muted);letter-spacing:.04em;flex-wrap:wrap}
+  .wdg-head b{color:var(--text-bright);font-weight:500}
+  .tag{font-weight:500;letter-spacing:.12em;padding:3px 10px;border-radius:3px;font-size:11px;white-space:nowrap}
+  .tag.ok{color:#0d0c07;background:var(--sage)} .tag.no{color:#0d0c07;background:var(--coral)}
+  .tag.idle{color:var(--text-muted);border:1px solid var(--border)}
+  .wdg-foot{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);
+    display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .btn{font-family:var(--font-display);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    background:transparent;color:var(--text-primary);border:1px solid var(--border);border-radius:4px;padding:7px 14px;cursor:pointer;transition:.2s}
+  .btn:hover{color:var(--text-bright);border-color:var(--amber)}
+  .btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  .btn:disabled{opacity:.35;cursor:default}
 
-    /* widget shell (matches pushman .aim-widget) */
-    .wdg-head{display:flex;justify-content:space-between;align-items:center;gap:12px;
-      padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-muted);letter-spacing:.04em}
-    .wdg-head b{color:var(--text-bright);font-weight:500}
-    .wdg-tag{font-weight:500;letter-spacing:.14em;padding:3px 11px;border-radius:3px;font-size:11px}
-    .wdg-tag.ok{color:#0d0c07;background:var(--sage)} .wdg-tag.no{color:#0d0c07;background:var(--coral)}
-    .wdg-tag.idle{color:var(--text-muted);border:1px solid var(--border)}
-    .wdg-foot{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);
-      display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-    .btn{font-family:var(--font-display);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
-      background:transparent;color:var(--text-primary);border:1px solid var(--border);border-radius:4px;
-      padding:7px 14px;cursor:pointer;transition:border-color .2s,color .2s}
-    .btn:hover{color:var(--text-bright);border-color:var(--amber)}
-    .btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-    .board-svg{display:block;width:100%;max-width:520px;margin:22px auto;touch-action:none}
-    .cell{fill:var(--raised)} .grid-l{stroke:#000;stroke-opacity:.25;stroke-width:1}
-    .exit-notch{fill:var(--void)}
-    .car{cursor:grab} .car.dragging{cursor:grabbing}
-    .car .body{stroke:rgba(0,0,0,.35);stroke-width:1.5}
-    .car-red .body{fill:var(--coral)} .car-steel .body{fill:var(--steel)}
-    .car-amber .body{fill:var(--amber)} .car-mauve .body{fill:var(--mauve)}
-    .car-terra .body{fill:var(--terra)} .car-sage .body{fill:var(--sage)}
-    .car .lbl{fill:#0d0c07;font-family:var(--font-mono);font-weight:500;font-size:15px;
-      text-anchor:middle;dominant-baseline:central;pointer-events:none}
-    .chainno{fill:#0d0c07;font-family:var(--font-mono);font-weight:500;font-size:14px;
-      text-anchor:middle;dominant-baseline:central}
-    .chainbg{fill:var(--amber-bright)}
-    .exit-arrow{fill:var(--amber);font-family:var(--font-mono);font-size:12px;letter-spacing:.1em}
-    .win-flash{fill:var(--sage);opacity:0}
+  .bsvg{display:block;width:100%;max-width:440px;margin:20px auto;touch-action:none}
+  .cellr{fill:var(--raised);stroke:#000;stroke-opacity:.3}
+  .car{cursor:grab} .car.drag{cursor:grabbing}
+  .car rect{stroke:rgba(0,0,0,.4);stroke-width:1.5}
+  .car.red rect{fill:var(--coral)} .car.st rect{fill:var(--steel)}
+  .car.am rect{fill:var(--amber)} .car.mv rect{fill:var(--mauve)}
+  .car.tr rect{fill:var(--terra)} .car.sg rect{fill:var(--sage)}
+  .car.dim rect{opacity:.32}
+  .car text{fill:#0d0c07;font-family:var(--font-mono);font-weight:500;font-size:14px;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+  .exitl{fill:var(--amber);font-family:var(--font-mono);font-size:11px;letter-spacing:.08em}
+  .hexc{fill:var(--raised);stroke:#000;stroke-opacity:.35}
+  .hexc.exit{fill:#2a3320;stroke:var(--sage)}
+  .hexp{stroke:rgba(0,0,0,.4);stroke-width:1.5}
 
-    /* scatter */
-    .scatter-wrap .toggle-row{display:flex;gap:0;border-bottom:1px solid var(--border)}
-    .scatter-wrap .toggle{flex:1;padding:12px 6px;font-family:var(--font-display);font-weight:600;font-size:12px;
-      letter-spacing:.08em;text-transform:uppercase;text-align:center;cursor:pointer;background:transparent;
-      color:var(--text-muted);border:none;border-right:1px solid var(--border);border-bottom:2px solid transparent;transition:.2s}
-    .scatter-wrap .toggle:last-child{border-right:none}
-    .scatter-wrap .toggle.active{color:var(--text-bright);border-bottom-color:var(--amber);background:var(--surface)}
-    .scatter-wrap .toggle:hover{color:var(--text-primary)}
-    #scatterSvg{display:block;width:100%;max-height:440px}
-    .sc-pt{transition:cx .8s cubic-bezier(.2,.7,.2,1);cursor:pointer}
-    .sc-axis{stroke:var(--border);stroke-width:1}
-    .sc-lab{fill:var(--text-muted);font-family:var(--font-mono);font-size:11px}
-    .sc-title{fill:var(--text-secondary,#9a9484);font-family:var(--font-mono);font-size:12px}
-    .sc-tip{fill:var(--text-bright);font-family:var(--font-mono);font-size:12px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  .two>div{padding:0 0 6px} .two>div+div{border-left:1px solid var(--border)}
+  @media(max-width:680px){.two{grid-template-columns:1fr}.two>div+div{border-left:none;border-top:1px solid var(--border)}}
+  .two h4{font-family:var(--font-display);font-weight:600;font-size:13px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--text-muted);padding:12px 16px 0;text-align:center}
+  .stats{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;padding:4px 12px 10px;font-size:11px;color:var(--text-muted)}
+  .stats b{color:var(--amber-bright);font-weight:500;font-variant-numeric:tabular-nums}
+  .stats .big{color:var(--text-bright);font-size:15px}
 
-    /* correlation strips */
-    .strips{max-width:820px;margin:20px auto 0}
-    .strip{margin:0 0 12px}
-    .strip .sh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;flex-wrap:wrap;gap:6px}
-    .strip .sn{font-size:13px;color:var(--text-bright)}
-    .strip .sr{font-size:11px;font-variant-numeric:tabular-nums}
-    .strip .sr.g{color:var(--sage)} .strip .sr.w{color:var(--terra)}
-    .strip .track{position:relative;height:26px;border-radius:6px;border:1px solid var(--border);
-      background:linear-gradient(90deg,color-mix(in srgb,var(--terra) 18%,transparent),
-        color-mix(in srgb,var(--terra) 4%,transparent) 40%,transparent 40%,
-        color-mix(in srgb,var(--sage) 6%,transparent) 46%,color-mix(in srgb,var(--sage) 24%,transparent))}
-    .strip .zero{position:absolute;top:-4px;bottom:-4px;left:40%;width:1.5px;background:var(--text-muted);opacity:.55}
-    .strip .dot{position:absolute;top:50%;width:13px;height:13px;border-radius:50%;transform:translate(-50%,-50%) scale(0);
-      border:2px solid var(--void);transition:transform .5s cubic-bezier(.2,1.3,.4,1)}
-    .in .strip .dot{transform:translate(-50%,-50%) scale(1)}
-    .dot.sq{background:var(--amber-bright)} .dot.h1{background:color-mix(in srgb,var(--steel) 55%,var(--void))}
-    .dot.h2{background:var(--steel)} .dot.h3{background:var(--sage)}
-    .legend{display:flex;flex-wrap:wrap;gap:10px 18px;justify-content:center;font-size:11px;color:var(--text-muted);margin-top:14px}
-    .legend .k{display:inline-flex;align-items:center;gap:6px}
-    .legend .sw{width:11px;height:11px;border-radius:50%}
+  .toggle-row{display:flex;border-bottom:1px solid var(--border)}
+  .toggle{flex:1;padding:12px 6px;font-family:var(--font-display);font-weight:600;font-size:12px;letter-spacing:.08em;
+    text-transform:uppercase;text-align:center;cursor:pointer;background:transparent;color:var(--text-muted);
+    border:none;border-right:1px solid var(--border);border-bottom:2px solid transparent;transition:.2s}
+  .toggle:last-child{border-right:none}
+  .toggle.active{color:var(--text-bright);border-bottom-color:var(--amber);background:var(--surface)}
+  .toggle:hover{color:var(--text-primary)}
 
-    /* decision cards */
-    .decision{max-width:720px;margin:34px auto;display:flex;flex-direction:column;gap:12px}
-    .dec-row{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;padding:18px 22px;
-      border:1px solid var(--border);border-radius:6px;background:#0d0c07}
-    .dec-row.trap{border-left:3px solid var(--terra)}
-    .dec-n{font-family:var(--font-mono);font-size:20px;color:var(--amber);grid-row:span 2}
-    .dec-q{font-size:15px;color:var(--text-bright)} .dec-q code{color:var(--amber-bright);font-size:.9em}
-    .dec-a{font-size:13px;color:var(--text-muted)} .dec-a em{color:var(--terra);font-style:normal}
+  .metric{border-bottom:1px solid var(--border);padding:18px 20px}
+  .metric:last-child{border-bottom:none}
+  .metric .mh{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+  .metric .mn{font-family:var(--font-mono);font-size:14px;color:var(--text-bright);font-weight:500}
+  .metric .rho{font-size:11px;padding:2px 9px;border-radius:999px;border:1px solid var(--border);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .metric .rho.g{color:var(--sage);border-color:rgba(125,154,106,.5)}
+  .metric .rho.w{color:var(--terra);border-color:rgba(196,122,90,.5)}
+  .metric .md{font-size:13px;color:var(--text-primary);margin-bottom:10px}
+  .metric .me{font-size:12px;color:var(--text-muted);line-height:1.65}
+  .track{position:relative;height:26px;border-radius:6px;border:1px solid var(--border);margin-top:12px;
+    background:linear-gradient(90deg,rgba(196,122,90,.18),rgba(196,122,90,.04) 40%,transparent 40%,rgba(125,154,106,.06) 46%,rgba(125,154,106,.24))}
+  .track .zero{position:absolute;top:-4px;bottom:-4px;left:40%;width:1.5px;background:var(--text-muted);opacity:.55}
+  .track .dot{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid var(--void)}
+  .dot.sq{background:var(--amber-bright)} .dot.h1{background:#3f4a56}
+  .dot.h2{background:var(--steel)} .dot.h3{background:var(--sage)}
+  .scaleb{display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:5px}
+  .legend{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;font-size:11px;color:var(--text-muted);padding:12px 16px;border-bottom:1px solid var(--border)}
+  .legend .k{display:inline-flex;align-items:center;gap:6px}
+  .legend .sw{width:10px;height:10px;border-radius:50%}
 
-    /* caveats + outro */
-    .caveats{max-width:680px;margin:0 auto;padding:2vh 24px}
-    .caveat{display:flex;gap:.7rem;margin:.6rem 0;font-size:12.5px;color:var(--text-muted)}
-    .caveat::before{content:"▸";color:var(--amber);flex:0 0 auto}
-    .caveat b{color:var(--text-primary)}
-    .outro{max-width:820px;margin:0 auto;padding:10vh 24px 12vh;text-align:center}
-    .outro h2{font-family:var(--font-display);font-weight:600;font-size:clamp(24px,4vw,38px);color:var(--text-bright);margin-bottom:18px}
-    .outro p{font-size:14px;color:var(--text-muted);margin-bottom:28px;max-width:56ch;margin-left:auto;margin-right:auto}
-    .embed{border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#0d0c07;margin:0 auto;max-width:820px}
-    .embed .ph{aspect-ratio:16/10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
-      color:var(--text-muted);font-size:13px;text-align:center;padding:24px}
-    .embed iframe{display:block;width:100%;aspect-ratio:16/10;border:0}
-    .play-link{font-family:var(--font-display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-      color:var(--void);background:var(--amber-bright);padding:12px 26px;border-radius:5px;text-decoration:none;font-size:13px}
-    .sign{margin-top:34px;font-size:11px;color:var(--text-muted);letter-spacing:.06em}
-    a{color:var(--amber-bright)}
+  #scat{display:block;width:100%;max-height:420px}
+  .axhint{font-size:11px;color:var(--text-muted);padding:0 16px 12px;text-align:center}
 
-    @media (max-width:600px){.beat{padding:10vh 20px 4vh}}
-  </style>
+  .scrolly{position:relative;max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:48px}
+  @media(max-width:860px){.scrolly{grid-template-columns:1fr;gap:0}}
+  .graphic{position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:center}
+  @media(max-width:860px){.graphic{height:56vh;top:4vh}}
+  .steps-col{padding:20vh 0}
+  .step{min-height:80vh;display:flex;flex-direction:column;justify-content:center;opacity:.28;transition:opacity .4s}
+  .step.active{opacity:1}
+  .step .n{font-size:11px;letter-spacing:.2em;color:var(--amber);margin-bottom:12px}
+  .step h3{font-family:var(--font-display);font-weight:600;font-size:clamp(20px,3vw,28px);color:var(--text-bright);line-height:1.18;margin-bottom:12px}
+  .step p{font-size:14px;color:var(--text-primary)}
+
+  .outro{max-width:680px;margin:0 auto;padding:12vh 24px 10vh;text-align:center}
+  .outro h2{font-family:var(--font-display);font-weight:600;font-size:clamp(24px,4vw,38px);color:var(--text-bright);margin-bottom:18px}
+  .outro p{font-size:14px;color:var(--text-muted);margin-bottom:22px}
+  .caveats{max-width:680px;margin:0 auto;padding:4vh 24px 2vh;font-size:12px;color:var(--text-muted);line-height:1.75}
+  .caveats .c{display:flex;gap:10px;margin-bottom:12px}
+  .caveats .c::before{content:"▸";color:var(--amber);flex:none}
+  .caveats b{color:var(--text-primary);font-weight:500}
+  .embed-slot{max-width:940px;margin:28px auto;border:1px dashed var(--border);border-radius:6px;padding:34px 24px;text-align:center}
+  .embed-slot .t{font-family:var(--font-display);font-weight:600;font-size:16px;color:var(--text-primary);letter-spacing:.06em}
+  .embed-slot .s{font-size:12px;color:var(--text-muted);margin-top:8px}
+</style>
 </head>
 <body>
 <div class="progress" id="progress"></div>
 <div class="wrap">
 
-  <header class="hero">
-    <div class="kicker">Gridlocked · a puzzle-difficulty study</div>
-    <h1>A <span class="strike">bigger</span> maze isn't a <span class="accent">harder</span> maze.</h1>
-    <p class="sub">We solved <b>≈14,000</b> Rush-Hour-style puzzles — two board shapes, four traffic densities — and measured what actually tracks difficulty. The obvious answer, <b>how much room the puzzle has to move</b>, predicts almost nothing. What the pieces <b>demand of each other</b> predicts nearly everything.</p>
-    <div class="scroll-cue">↓ drag some cars first</div>
-  </header>
+<header class="hero">
+  <div class="kicker">Gridlocked · what makes a puzzle hard</div>
+  <h1>A <span class="strike">bigger</span> maze isn't a <span class="accent">harder</span> maze.</h1>
+  <p class="sub">We solved <b>14,163</b> sliding-block puzzles — every one of them exhaustively, to the last reachable position. The obvious measure of difficulty turns out to be worthless. Something less obvious predicts it almost perfectly. Every board on this page is a real puzzle from that set.</p>
+  <div class="scroll-cue">scroll</div>
+</header>
 
-  <!-- [1] drag-to-solve -->
-  <section class="beat" style="padding-bottom:0">
-    <div class="eyebrow">The game, in ten seconds</div>
-    <h2>Free the red car.</h2>
-    <p>Slide blockers along their own axis until the red car can roll out the exit on the right. That's the whole game. Try it — drag the cars.</p>
-  </section>
-  <div class="fig narrow reveal" id="w-solve">
-    <div class="wdg-head"><span>Drag a car along its axis</span><span class="wdg-tag idle" id="solveTag">unsolved</span></div>
-    <svg class="board-svg" id="solveSvg" viewBox="0 0 300 300" aria-label="A small draggable Rush Hour puzzle"></svg>
-    <div class="wdg-foot"><span id="solveHint">The red car needs the exit. One blocker is in the way.</span><button class="btn" id="solveReset">Reset</button></div>
-  </div>
+<!-- 1. LEARN THE GAME -->
+<section class="beat">
+  <div class="eyebrow">First, the game</div>
+  <h2>Get the red car out.</h2>
+  <p>Cars slide along their own axis only — horizontal cars left and right, vertical cars up and down. Nothing jumps, nothing rotates. The red car escapes through the gap on the right edge.</p>
+  <p><span class="dim">Drag the cars. This one takes six moves.</span></p>
+</section>
 
-  <div class="rule"></div>
+<figure class="fig narrow reveal">
+  <div class="wdg-head"><span>Try it — <b>drag a car</b></span><span class="tag idle" id="t_play">6 moves optimal</span></div>
+  <svg class="bsvg" id="b_play" viewBox="0 0 300 300"></svg>
+  <div class="wdg-foot"><span id="f_play">Moves: 0</span><button class="btn" id="r_play">Reset</button></div>
+</figure>
 
-  <!-- intuition beat -->
-  <section class="beat">
-    <div class="eyebrow">The intuition</div>
-    <h2>Surely a bigger space is a harder puzzle.</h2>
-    <p>Every puzzle hides a sprawling graph of arrangements you could reach — sometimes a few hundred, sometimes tens of thousands. The natural assumption: more room to get lost in means a tougher solve. It's the number the giant tangled state-graph loves to show off.</p>
-    <p>So we plotted it. Each dot below is one real puzzle from the study. <b>Flip the horizontal axis</b> and watch what happens.</p>
-  </section>
+<div class="rule"></div>
 
-  <!-- [2] axis-flip scatter -->
-  <div class="fig reveal scatter-wrap" id="w-scatter">
-    <div class="toggle-row">
-      <button class="toggle active" data-x="st">X = total states <span class="dim">(size)</span></button>
-      <button class="toggle" data-x="d">X = dependency depth <span class="dim">(structure)</span></button>
+<!-- 2. WHAT IS GRAPH SIZE -->
+<section class="beat">
+  <div class="eyebrow">The measurement</div>
+  <h2>Every puzzle contains a hidden map.</h2>
+  <p>From the starting position you might have eight legal moves. Each leads to a position with its own eight. Follow that outward and you get every arrangement the puzzle can ever reach — its <b>state space</b>.</p>
+  <p>That number is the puzzle's <span class="amber">size</span>. It's the first thing anyone measures, because it feels like it should mean something: a puzzle with 11,000 possible positions has to be harder than one with 400. Watch it grow.</p>
+</section>
+
+<figure class="fig narrow reveal">
+  <div class="wdg-head"><span>Positions reachable within <b id="fan_k">1</b> move</span><span class="tag idle" id="fan_n">1</span></div>
+  <svg class="bsvg" id="b_fan" viewBox="0 0 300 300" style="max-width:340px"></svg>
+  <div style="padding:0 20px 8px"><svg id="fanbar" viewBox="0 0 400 90" style="width:100%;display:block"></svg></div>
+  <div class="wdg-foot"><span>This puzzle's full state space: <b style="color:var(--amber-bright)">11,487 positions</b></span><button class="btn" id="fan_go">Expand</button></div>
+</figure>
+
+<div class="rule"></div>
+
+<!-- 3. THE LETDOWN -->
+<section class="beat">
+  <div class="eyebrow">The problem</div>
+  <h2>Size is a liar.</h2>
+  <p>Here are two real puzzles from the set. The left one can reach <b>11,487</b> positions. The right one, <b>422</b> — twenty-seven times smaller.</p>
+  <p>The big one is solved in <span class="sage">6 moves</span>. The small one takes <span class="coral">17</span>.</p>
+</section>
+
+<figure class="fig reveal">
+  <div class="two">
+    <div>
+      <h4>Vast, and easy</h4>
+      <div class="stats"><span>states <b>11,487</b></span><span>solved in <b class="big">6</b></span></div>
+      <svg class="bsvg" id="b_big" viewBox="0 0 300 300" style="max-width:280px"></svg>
     </div>
-    <svg id="scatterSvg" viewBox="0 0 640 420" aria-label="Scatter of puzzle difficulty against size or dependency depth"></svg>
-    <div class="wdg-foot"><span id="scTip">Vertical axis is solution length. Hover a dot for its numbers.</span><span id="scRho" style="color:var(--text-bright)"></span></div>
+    <div>
+      <h4>Cramped, and hard</h4>
+      <div class="stats"><span>states <b>422</b></span><span>solved in <b class="big">17</b></span></div>
+      <svg class="bsvg" id="b_small" viewBox="0 0 300 300" style="max-width:280px"></svg>
+    </div>
+  </div>
+  <div class="cap">Both real puzzles, both solved exhaustively. A 27× difference in size, and the smaller one is nearly three times longer to solve.</div>
+</figure>
+
+<section class="beat">
+  <p>That's not a cherry-picked pair. Across all 14,163 puzzles, size and difficulty are <b>statistically unrelated</b>. Flip the axis below and watch a shapeless cloud snap into a line.</p>
+</section>
+
+<figure class="fig reveal">
+  <div class="toggle-row">
+    <button class="toggle active" data-x="st">X = puzzle size</button>
+    <button class="toggle" data-x="d">X = dependency depth</button>
   </div>
   <div class="legend">
-    <span class="k"><span class="sw" style="background:var(--amber-bright)"></span>square (Rush Hour)</span>
-    <span class="k"><span class="sw" style="background:color-mix(in srgb,var(--steel) 55%,var(--void))"></span>hex·sparse</span>
-    <span class="k"><span class="sw" style="background:var(--steel)"></span>hex·medium</span>
-    <span class="k"><span class="sw" style="background:var(--sage)"></span>hex·dense</span>
+    <span class="k"><span class="sw" style="background:var(--amber-bright)"></span>square</span>
+    <span class="k"><span class="sw" style="background:#3f4a56"></span>hex sparse</span>
+    <span class="k"><span class="sw" style="background:var(--steel)"></span>hex medium</span>
+    <span class="k"><span class="sw" style="background:var(--sage)"></span>hex dense</span>
+    <span style="margin-left:auto">Y axis = moves to solve</span>
   </div>
+  <svg id="scat" viewBox="0 0 560 400"></svg>
+  <div class="axhint" id="scathint">550 real puzzles. Size tells you nothing — ρ = 0.03.</div>
+</figure>
 
-  <div class="rule"></div>
+<div class="rule"></div>
 
-  <!-- structure beat -->
-  <section class="beat">
-    <div class="eyebrow win">What actually matters</div>
-    <h2>How deep the chain of prerequisites goes.</h2>
-    <p>The real work isn't distance — it's order. To move the red car you must first move <span class="amber">A</span>; but A is pinned by <span class="steel">B</span>; and B needs <span class="steel">C</span> gone first. That forced sequence is the puzzle's spine.</p>
-    <p><b>Dependency depth</b> is the length of that chain. Click below to trace it, then compare it to a puzzle with the same number of cars but no nesting at all.</p>
-  </section>
+<!-- 4. WHAT IS A DEPENDENCY -->
+<section class="beat">
+  <div class="eyebrow win">The thing that works</div>
+  <h2>What has to move before what.</h2>
+  <p>Every move in a solution clears space that some later move needs. Trace those hand-offs and you get a chain: <b>C must move before B, which must move before A, which frees the red car.</b></p>
+  <p>The length of the longest such chain is the puzzle's <span class="amber">dependency depth</span> — how many steps of consequence you have to hold in your head at once. Step through a real solution and watch the chain build.</p>
+</section>
 
-  <!-- [3] dependency explorer -->
-  <div class="fig reveal" id="w-dep">
-    <div class="wdg-head"><span>Trace the forced order</span><span class="wdg-tag idle" id="depTag">depth = ?</span></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-      <div style="border-right:1px solid var(--border)">
-        <svg class="board-svg" id="depSvgA" viewBox="0 0 300 300" style="margin:16px auto" aria-label="A puzzle with a deep dependency chain"></svg>
-        <p style="text-align:center;font-size:11px;color:var(--text-muted);padding-bottom:14px">nested — one long chain</p>
-      </div>
-      <div>
-        <svg class="board-svg" id="depSvgB" viewBox="0 0 300 300" style="margin:16px auto" aria-label="A puzzle with independent blockers"></svg>
-        <p style="text-align:center;font-size:11px;color:var(--text-muted);padding-bottom:14px">independent — no chain</p>
-      </div>
+<figure class="fig narrow reveal">
+  <div class="wdg-head"><span>Real 11-move solution · step <b id="dep_i">0</b>/11</span><span class="tag idle" id="dep_tag">depth 1</span></div>
+  <svg class="bsvg" id="b_dep" viewBox="0 0 300 300"></svg>
+  <div class="wdg-foot"><span id="dep_msg">Press Step to play the solver's solution.</span>
+    <span><button class="btn" id="dep_step">Step</button> <button class="btn" id="dep_reset">Reset</button></span></div>
+</figure>
+
+<section class="beat">
+  <p>Now the same measurement on two puzzles that are <b>identical in length</b> — both exactly 11 moves. One has a depth of 3. The other, 11: every single move is a prerequisite for the next.</p>
+</section>
+
+<figure class="fig reveal">
+  <div class="two">
+    <div>
+      <h4>Depth 3 — shallow</h4>
+      <div class="stats"><span>11 moves</span><span>depth <b class="big">3</b></span><span>states <b>1,123</b></span></div>
+      <svg class="bsvg" id="b_shal" viewBox="0 0 300 300" style="max-width:280px"></svg>
     </div>
-    <div class="wdg-foot"><span id="depHint">Same car count. Very different difficulty.</span><button class="btn" id="depTrace">Trace the chain →</button></div>
-  </div>
-
-  <div class="rule"></div>
-
-  <!-- counterintuitive beat -->
-  <section class="beat">
-    <div class="eyebrow win">And the twist</div>
-    <h2>Sometimes you have to retreat to win.</h2>
-    <p>Humans play greedily — every move should shrink the gap to the exit. The nastiest puzzles punish exactly that instinct: the only way forward is <span class="coral">backward</span>. Try the obvious move first.</p>
-  </section>
-
-  <!-- [4] counterintuitive demo -->
-  <div class="fig narrow reveal" id="w-ci">
-    <div class="wdg-head"><span>Which move frees the red car?</span><span class="wdg-tag idle" id="ciTag">your call</span></div>
-    <svg class="board-svg" id="ciSvg" viewBox="0 0 300 300" aria-label="A puzzle where the greedy move fails"></svg>
-    <div class="wdg-foot" style="justify-content:center;gap:14px">
-      <button class="btn" id="ciGreedy">Push red toward exit →</button>
-      <button class="btn" id="ciBack">← Pull red away first</button>
-    </div>
-  </section>
-
-  <div class="rule"></div>
-
-  <!-- scoreboard -->
-  <section class="beat">
-    <div class="eyebrow">The scoreboard</div>
-    <h2>Every metric, ranked by how well it predicts difficulty.</h2>
-    <p>Each strip is one measurement, plotted across all four puzzle types. Dots to the <span class="sage">right</span> track difficulty; dots clustered together mean the metric holds no matter the board shape or density. The split is stark.</p>
-  </section>
-  <div class="fig reveal" style="background:transparent;border:none">
-    <div class="strips" id="strips"></div>
-    <div class="legend">
-      <span class="k"><span class="sw" style="background:var(--amber-bright)"></span>square</span>
-      <span class="k"><span class="sw" style="background:color-mix(in srgb,var(--steel) 55%,var(--void))"></span>hex·sparse</span>
-      <span class="k"><span class="sw" style="background:var(--steel)"></span>hex·medium</span>
-      <span class="k"><span class="sw" style="background:var(--sage)"></span>hex·dense</span>
+    <div>
+      <h4>Depth 11 — one long chain</h4>
+      <div class="stats"><span>11 moves</span><span>depth <b class="big">11</b></span><span>states <b>47</b></span></div>
+      <svg class="bsvg" id="b_deep" viewBox="0 0 300 300" style="max-width:280px"></svg>
     </div>
   </div>
+  <div class="cap">Same solution length. The right-hand puzzle has one forced chain with no slack — and only 47 reachable positions, making it one of the smallest and hardest in the set.</div>
+</figure>
 
-  <div class="rule"></div>
+<div class="rule"></div>
 
-  <!-- traps -->
-  <section class="beat">
-    <div class="eyebrow">The part nobody shows you</div>
-    <h2>Three times the average lied to us.</h2>
-    <p>Measuring difficulty is a minefield of confounds. Three plausible statistics pointed the wrong way — each caught only by digging past the headline number. This is the honest spine of the study.</p>
-  </section>
-  <div class="decision reveal">
-    <div class="dec-row trap"><span class="dec-n">01</span>
-      <div class="dec-q">The metric that graded itself — <code>deception_ratio = states ÷ moves</code></div>
-      <div class="dec-a">We correlated it against <em>moves</em>, the very thing it divides by. Its flat result was arithmetic eating its own tail, not a finding.</div></div>
-    <div class="dec-row trap"><span class="dec-n">02</span>
-      <div class="dec-q">The count that just measured length — <code>counterintuitive_moves</code></div>
-      <div class="dec-a">A gaudy 0.93 — because longer solutions mechanically fit more of them. As a <em>fraction</em> of the path, the honest number is 0.44.</div></div>
-    <div class="dec-row trap"><span class="dec-n">03</span>
-      <div class="dec-q">Simpson's paradox in the depths — unique vs many solutions</div>
-      <div class="dec-a">Pooled, they look identical. Split by solution length, unique-solution puzzles are <em>twice as deep</em> at every length. The average erased it.</div></div>
+<!-- 5. COUNTERINTUITIVE -->
+<section class="beat">
+  <div class="eyebrow win">The second thing that works</div>
+  <h2>Sometimes you have to drive away from the exit.</h2>
+  <p>The instinct is to shrink the gap between the red car and the exit on every move. In hard puzzles that instinct is a trap: the winning move often makes the position look <b>worse</b>.</p>
+  <p>We count the fraction of moves in the optimal solution that fail to make greedy progress. In the puzzle below, <span class="coral">9 of 11 moves</span> — 82% — go the "wrong" way. Watch the distance meter climb.</p>
+</section>
+
+<figure class="fig narrow reveal">
+  <div class="wdg-head"><span>Distance from red car to exit</span><span class="tag idle" id="ci_tag">step 0/11</span></div>
+  <svg class="bsvg" id="b_ci" viewBox="0 0 300 300"></svg>
+  <div style="padding:0 20px 6px"><svg id="cibar" viewBox="0 0 400 60" style="width:100%;display:block"></svg></div>
+  <div class="wdg-foot"><span id="ci_msg">82% of these moves make the position look worse.</span>
+    <span><button class="btn" id="ci_step">Step</button> <button class="btn" id="ci_reset">Reset</button></span></div>
+</figure>
+
+<div class="rule"></div>
+
+<!-- 6. HEX DEEP DIVE -->
+<section class="beat">
+  <div class="eyebrow">The experiment</div>
+  <h2>So we changed the shape of the world.</h2>
+  <p>If dependency depth really governs difficulty, it should hold on a board that isn't a square grid at all. So we built one: a <b>hexagonal</b> board where pieces slide along <span class="amber">three</span> axes instead of two.</p>
+  <p>Nobody, as far as we can tell, has run Rush Hour on a hex grid before. It's not a reskin — the third axis genuinely changes the game.</p>
+</section>
+
+<figure class="fig narrow reveal">
+  <div class="wdg-head"><span>Three axes of movement</span><span class="tag idle" id="ax_tag">axis 1 of 3</span></div>
+  <svg class="bsvg" id="b_axes" viewBox="0 0 320 300" style="max-width:400px"></svg>
+  <div class="wdg-foot"><span id="ax_msg">On a square grid a piece has 2 directions. Here it has 3.</span><button class="btn" id="ax_next">Next axis</button></div>
+</figure>
+
+<section class="beat">
+  <p>Here's a real hex puzzle from the corpus — same rules, same red-piece-to-exit goal, but pieces now slide along whichever of the three axes they're laid on.</p>
+</section>
+
+<figure class="fig narrow reveal">
+  <div class="wdg-head"><span>Real hex puzzle — <b>drag a piece</b></span><span class="tag idle" id="t_hex">solves in 5</span></div>
+  <svg class="bsvg" id="b_hex" viewBox="0 0 340 320" style="max-width:420px"></svg>
+  <div class="wdg-foot"><span id="f_hex">Moves: 0</span><button class="btn" id="r_hex">Reset</button></div>
+</figure>
+
+<section class="beat">
+  <div class="eyebrow">The hex result</div>
+  <h2>The third axis drains the tension.</h2>
+  <p>More freedom means fewer traps. Hex puzzles solve in <b>4.3 to 7.5 moves</b> on average, against square's <b>12.2</b> — and their dependency chains are shorter at every density we tried. Give pieces an escape route and gridlock stops being gridlock.</p>
+  <p>But pack the board tighter and structure reasserts itself. As hex density rises, dependency depth predicts difficulty <span class="sage">better and better</span> — 0.66, then 0.76, then 0.83. Crowding is what manufactures depth.</p>
+</section>
+
+<figure class="fig reveal">
+  <svg id="dens" viewBox="0 0 560 260" style="width:100%;display:block"></svg>
+  <div class="cap">Each bar: how strongly dependency depth predicts difficulty, by board type. The denser the hex board, the more structure matters.</div>
+</figure>
+
+<div class="rule"></div>
+
+<!-- 7. SCOREBOARD -->
+<section class="beat">
+  <div class="eyebrow">Everything we measured</div>
+  <h2>The scoreboard.</h2>
+  <p>Five metrics, four board types, 14,163 puzzles. Each dot is how strongly that metric tracked difficulty on one board type — further right means a stronger relationship.</p>
+</section>
+
+<figure class="fig reveal">
+  <div class="legend">
+    <span class="k"><span class="sw" style="background:var(--amber-bright)"></span>square</span>
+    <span class="k"><span class="sw" style="background:#3f4a56"></span>hex sparse</span>
+    <span class="k"><span class="sw" style="background:var(--steel)"></span>hex medium</span>
+    <span class="k"><span class="sw" style="background:var(--sage)"></span>hex dense</span>
+    <span style="margin-left:auto">clustered dots = holds on every board type</span>
   </div>
 
-  <div class="rule"></div>
-
-  <div class="caveats">
-    <div class="caveat"><span><b>These correlations are against optimal move count</b> — an objective difficulty proxy, not yet how hard humans <em>feel</em> a puzzle. That test needs human-labeled puzzles; the 40 tiered Rush Hour challenge cards are next.</span></div>
-    <div class="caveat"><span>Square numbers are cross-validated — our solver matched an independent <b>2.5-million-puzzle</b> reference on every sampled board. Hex numbers rest on our own solver alone; no external reference exists for the three-axis board.</span></div>
-    <div class="caveat"><span>n ≈ 14,000 · square from Fogleman's complete 6×6 database, hex self-generated · Spearman rank correlation · dependency depth averaged over 8 sampled optimal solutions per puzzle.</span></div>
+  <div class="metric">
+    <div class="mh"><span class="mn">dependency depth</span><span class="rho g">ρ 0.61 – 0.83</span></div>
+    <div class="md">The longest chain of “this must move before that.”</div>
+    <div class="me">How many consequences deep you have to plan. Strongest predictor on every board type we tested, and it gets stronger as boards get crowded. Two puzzles of identical length can differ by 8 in depth — and it's the depth you feel.</div>
+    <div class="track"><span class="zero"></span><span class="dot sq" style="left:80.5%"></span><span class="dot h1" style="left:83.7%"></span><span class="dot h2" style="left:90.9%"></span><span class="dot h3" style="left:95.4%"></span></div>
+    <div class="scaleb"><span>−0.6</span><span>no relationship</span><span>+0.9</span></div>
   </div>
 
-  <!-- outro + itch embed -->
-  <section class="outro">
-    <h2>Play it, and feel the difference yourself.</h2>
-    <p>Every board above is a live version of the game we built to run this study — square, hex, and all. The web build lands here.</p>
-    <div class="embed" id="embed">
-      <div class="ph">
-        <span>The playable build embeds here once it's published to itch.io.</span>
-        <a class="play-link" id="playLink" href="#" target="_blank" rel="noopener">Play on itch →</a>
-        <span style="font-size:11px">Drop the itch URL into <code>data-itch</code> on this section to go live.</span>
-      </div>
-    </div>
-    <div class="sign">Gridlocked · Orbitope — an ongoing study in what makes a puzzle worth solving.</div>
-  </section>
+  <div class="metric">
+    <div class="mh"><span class="mn">counterintuitive fraction</span><span class="rho g">ρ 0.44 – 0.75</span></div>
+    <div class="md">Share of moves that make the position look worse.</div>
+    <div class="me">Greedy play — always close the gap to the exit — is how people get stuck. Puzzles that punish that instinct measure as harder. We use the fraction rather than the raw count, because longer solutions rack up more of them for free.</div>
+    <div class="track"><span class="zero"></span><span class="dot sq" style="left:69%"></span><span class="dot h1" style="left:75.3%"></span><span class="dot h2" style="left:85.6%"></span><span class="dot h3" style="left:90.3%"></span></div>
+    <div class="scaleb"><span>−0.6</span><span>no relationship</span><span>+0.9</span></div>
+  </div>
+
+  <div class="metric">
+    <div class="mh"><span class="mn">optimal solutions</span><span class="rho g">ρ 0.46 – 0.68</span></div>
+    <div class="md">How many genuinely different shortest solutions exist.</div>
+    <div class="me">The surprise: harder puzzles have <b>more</b>, not fewer. The median Rush Hour puzzle has <b>484</b> distinct optimal solutions — one in our set has 640,980. The romantic idea of “the one clever line” is mostly a myth; difficulty lives in the size of the forest, not the rarity of the path.</div>
+    <div class="track"><span class="zero"></span><span class="dot sq" style="left:70.8%"></span><span class="dot h1" style="left:77.3%"></span><span class="dot h2" style="left:81.7%"></span><span class="dot h3" style="left:85.6%"></span></div>
+    <div class="scaleb"><span>−0.6</span><span>no relationship</span><span>+0.9</span></div>
+  </div>
+
+  <div class="metric">
+    <div class="mh"><span class="mn">tightest moment</span><span class="rho w">ρ −0.35 – −0.18</span></div>
+    <div class="md">Fewest legal moves available at any point in the solution.</div>
+    <div class="me">A promising idea — the pinch point where the puzzle allows only one move — that mostly didn't pan out. It leans the right way (tighter is harder) but weakly and inconsistently. Included because not every structural metric worked, and pretending otherwise would be dishonest.</div>
+    <div class="track"><span class="zero"></span><span class="dot sq" style="left:23.5%"></span><span class="dot h1" style="left:28.1%"></span><span class="dot h2" style="left:16.8%"></span><span class="dot h3" style="left:23.4%"></span></div>
+    <div class="scaleb"><span>−0.6</span><span>no relationship</span><span>+0.9</span></div>
+  </div>
+
+  <div class="metric">
+    <div class="mh"><span class="mn">puzzle size</span><span class="rho w">ρ −0.11 – 0.15</span></div>
+    <div class="md">Total positions the puzzle can reach.</div>
+    <div class="me">The intuitive answer, and the one this whole study set out to test. On two different geometries and four densities it hovered at zero — sometimes negative. A vast state space can hide a six-move solution. A 47-position puzzle can take eleven moves and be brutal.</div>
+    <div class="track"><span class="zero"></span><span class="dot sq" style="left:49.7%"></span><span class="dot h1" style="left:41.9%"></span><span class="dot h2" style="left:33%"></span><span class="dot h3" style="left:47.7%"></span></div>
+    <div class="scaleb"><span>−0.6</span><span>no relationship</span><span>+0.9</span></div>
+  </div>
+</figure>
+
+<div class="caveats">
+  <div class="c"><span><b>What "difficulty" means here.</b> We measure against the minimum number of moves a perfect solver needs — an objective proxy, not human struggle. Whether people <em>feel</em> these puzzles as harder is the obvious next experiment, and it needs human-labelled puzzles.</span></div>
+  <div class="c"><span><b>The square numbers are externally verified.</b> Our solver's move counts matched an independent 2.5-million-puzzle reference database on every puzzle we sampled. The hex numbers have no such reference — no one has built one — so they rest on our solver alone.</span></div>
+  <div class="c"><span><b>Method.</b> 12,500 square puzzles sampled from Fogleman's complete 6×6 database; 1,663 hex puzzles generated across three densities. Every puzzle solved exhaustively. Spearman rank correlation. Dependency depth averaged over 8 sampled optimal solutions per puzzle, because most puzzles have many.</span></div>
+</div>
+
+<div class="rule"></div>
+
+<section class="outro">
+  <h2>Play it yourself.</h2>
+  <p>Gridlocked is the game these puzzles come from — square and hex, both playable in the browser.</p>
+  <div class="embed-slot">
+    <div class="t">WEB BUILD COMING SOON</div>
+    <div class="s">The itch.io embed lands here once the WebGL build is published.</div>
+  </div>
+  <p style="margin-top:28px;font-size:12px">Gridlocked · Orbitope</p>
+</section>
 
 </div>
 
+<script src="puzzles.js"></script>
+<script src="hex.js"></script>
 <script src="data.js"></script>
 <script>
 (function(){
-  "use strict";
-  var reduce = matchMedia("(prefers-reduced-motion:reduce)").matches;
+"use strict";
+var P = window.PUZZLES || [], HEX = window.HEX || null, CORPUS = window.CORPUS || [];
+var COLORS=['red','st','am','mv','tr','sg','st','am','mv','tr','sg','st','am'];
 
-  /* progress */
-  var prog=document.getElementById("progress");
-  function onScroll(){var h=document.documentElement;prog.style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+"%";}
-  addEventListener("scroll",onScroll,{passive:true});onScroll();
+/* progress bar */
+var prog=document.getElementById('progress');
+addEventListener('scroll',function(){var h=document.documentElement;
+  prog.style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';},{passive:true});
 
-  /* reveal */
-  if("IntersectionObserver" in window){
-    var rio=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add("in");rio.unobserve(e.target);}});},{rootMargin:"0px 0px -12% 0px",threshold:.12});
-    document.querySelectorAll(".reveal").forEach(function(el){rio.observe(el);});
-  }else{document.querySelectorAll(".reveal").forEach(function(el){el.classList.add("in");});}
+/* reveal */
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+    if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},
+    {rootMargin:'0px 0px -10% 0px',threshold:.1});
+  document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+}else{document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in');});}
 
-  /* ---------- shared board engine ---------- */
-  var SVGNS="http://www.w3.org/2000/svg", N=6, CELL=48, PAD=6;
-  function el(t,a){var e=document.createElementNS(SVGNS,t);for(var k in a)e.setAttribute(k,a[k]);return e;}
-  // car: {id,x,y,len,h(bool),color}  exitRow
-  function Board(svg,spec,opts){
-    opts=opts||{};
-    var cars=spec.cars.map(function(c){return Object.assign({},c);});
-    var exitRow=spec.exitRow;
-    svg.innerHTML="";svg.setAttribute("viewBox","0 0 "+(N*CELL)+" "+(N*CELL));
-    // cells
-    for(var y=0;y<N;y++)for(var x=0;x<N;x++)
-      svg.appendChild(el("rect",{x:x*CELL+2,y:y*CELL+2,width:CELL-4,height:CELL-4,rx:4,class:"cell"}));
-    // exit notch
-    svg.appendChild(el("rect",{x:N*CELL-3,y:exitRow*CELL+6,width:6,height:CELL-12,class:"exit-notch"}));
-    var arrow=el("text",{x:N*CELL-40,y:exitRow*CELL+CELL/2+4,class:"exit-arrow"});arrow.textContent="EXIT→";svg.appendChild(arrow);
-    var flash=el("rect",{x:0,y:exitRow*CELL,width:N*CELL,height:CELL,class:"win-flash"});svg.appendChild(flash);
-    var gById={};
-    function occ(exceptId){var g={};cars.forEach(function(c){if(c.id===exceptId)return;for(var i=0;i<c.len;i++){var cx=c.h?c.x+i:c.x,cy=c.h?c.y:c.y+i;g[cx+","+cy]=1;}});return g;}
-    function range(c){ // free min/max position along axis
-      var o=occ(c.id),min=c.h?c.x:c.y,max=min;
-      var p=(c.h?c.x:c.y);
-      while(true){var np=p-1;if(np<0)break;var k=c.h?(np+","+c.y):(c.x+","+np);if(o[k])break;p=np;}min=p;
-      p=(c.h?c.x:c.y);var end=(c.h?c.x+c.len-1:c.y+c.len-1);
-      while(true){var ne=end+1;if(ne>=N)break;var k=c.h?(ne+","+c.y):(c.x+","+ne);if(o[k])break;end=ne;}
-      max=end-c.len+1;
-      return {min:min,max:max};
-    }
-    function draw(){
-      cars.forEach(function(c){
-        var g=gById[c.id];
-        if(!g){g=el("g",{class:"car car-"+c.color});g.dataset.id=c.id;svg.appendChild(g);
-          var body=el("rect",{class:"body",rx:7});g.appendChild(body);
-          if(opts.labels){var t=el("text",{class:"lbl"});t.textContent=c.id===0?"◆":c.color[0].toUpperCase();g.appendChild(t);g._t=t;}
-          g._b=body;gById[c.id]=g;
-          if(opts.draggable)attachDrag(c,g);
-        }
-        var w=(c.h?c.len:1)*CELL-2*PAD, h=(c.h?1:c.len)*CELL-2*PAD;
-        g._b.setAttribute("x",c.x*CELL+PAD);g._b.setAttribute("y",c.y*CELL+PAD);
-        g._b.setAttribute("width",w);g._b.setAttribute("height",h);
-        if(g._t){g._t.setAttribute("x",c.x*CELL+((c.h?c.len:1)*CELL)/2);g._t.setAttribute("y",c.y*CELL+((c.h?1:c.len)*CELL)/2);}
-      });
-    }
-    function toCell(evt){var r=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal;
-      var cx=(evt.touches?evt.touches[0].clientX:evt.clientX),cy=(evt.touches?evt.touches[0].clientY:evt.clientY);
-      return {x:(cx-r.left)/r.width*vb.width,y:(cy-r.top)/r.height*vb.height};}
-    function attachDrag(c,g){
-      var startPos,rng,dragging=false;
-      g.addEventListener("pointerdown",function(e){
-        dragging=true;g.classList.add("dragging");rng=range(c);
-        startPos={m:toCell(e),x:c.x,y:c.y};e.preventDefault();
-        g.setPointerCapture&&g.setPointerCapture(e.pointerId);
-      });
-      g.addEventListener("pointermove",function(e){
-        if(!dragging)return;var m=toCell(e);
-        if(c.h){var d=Math.round((m.x-startPos.m.x)/CELL);c.x=Math.max(rng.min,Math.min(rng.max,startPos.x+d));}
-        else{var d2=Math.round((m.y-startPos.m.y)/CELL);c.y=Math.max(rng.min,Math.min(rng.max,startPos.y+d2));}
-        draw();
-      });
-      function end(){if(!dragging)return;dragging=false;g.classList.remove("dragging");checkWin();}
-      g.addEventListener("pointerup",end);g.addEventListener("pointercancel",end);
-    }
-    function checkWin(){
-      var red=cars[0];
-      if(red.h&&red.y===exitRow&&red.x+red.len-1===N-1){
-        if(opts.onWin)opts.onWin();
-        if(!reduce){flash.animate([{opacity:0},{opacity:.5},{opacity:0}],{duration:900});}
-      }
-    }
-    draw();
-    return {cars:cars,gById:gById,draw:draw,flash:flash};
+/* ---------- square board engine (real 36-char boards) ---------- */
+/* Mirrors the C# RushBoardParser exactly, including its row flip
+   (y = 5 - sourceRow) and its car ordering (A first, then alphabetical).
+   Car indices must match the solver's, or the exported solutions won't replay. */
+function parse(b){
+  var cars={},i,ch;
+  for(i=0;i<36;i++){ch=b[i];if(ch==='o')continue;
+    if(!cars[ch])cars[ch]={cells:[]};
+    cars[ch].cells.push({x:i%6,y:5-((i/6)|0)});}
+  var keys=Object.keys(cars).filter(function(k){return k!=='A';}).sort();
+  if(cars['A'])keys.unshift('A');
+  return keys.map(function(k){
+    var c=cars[k].cells, horiz=c.every(function(p){return p.y===c[0].y;});
+    var along=c.map(function(p){return horiz?p.x:p.y;});
+    return{id:k,horiz:horiz,len:c.length,
+      fixed:horiz?c[0].y:c[0].x,pos:Math.min.apply(null,along)};
+  });
+}
+function occupancy(cars,skip){
+  var g={};
+  cars.forEach(function(c,i){ if(i===skip)return;
+    for(var k=0;k<c.len;k++){var x=c.horiz?c.pos+k:c.fixed,y=c.horiz?c.fixed:c.pos+k;g[x+','+y]=1;}});
+  return g;
+}
+function canPlace(cars,idx,pos){
+  var c=cars[idx],occ=occupancy(cars,idx);
+  if(pos<0||pos+c.len>6)return false;
+  for(var k=0;k<c.len;k++){var x=c.horiz?pos+k:c.fixed,y=c.horiz?c.fixed:pos+k;
+    if(occ[x+','+y])return false;}
+  return true;
+}
+function drawBoard(svg,cars,opts){
+  opts=opts||{};
+  var S=44,PAD=14,ns='http://www.w3.org/2000/svg';
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  for(var y=0;y<6;y++)for(var x=0;x<6;x++){
+    var r=document.createElementNS(ns,'rect');
+    r.setAttribute('class','cellr');
+    r.setAttribute('x',PAD+x*S);r.setAttribute('y',PAD+(5-y)*S);
+    r.setAttribute('width',S);r.setAttribute('height',S);r.setAttribute('rx',3);
+    svg.appendChild(r);}
+  // exit notch on the right of row 2 (y=2, where A lives)
+  var e=document.createElementNS(ns,'text');
+  e.setAttribute('class','exitl');e.setAttribute('x',PAD+6*S+2);
+  e.setAttribute('y',PAD+(5-2)*S+S/2+4);e.textContent='→';
+  svg.appendChild(e);
+
+  cars.forEach(function(c,i){
+    var g=document.createElementNS(ns,'g');
+    g.setAttribute('class','car '+(i===0?'red':COLORS[i%COLORS.length])+
+      (opts.dimExcept!=null&&opts.dimExcept!==i?' dim':''));
+    g.setAttribute('data-i',i);
+    // y is in board space (0 = bottom); screen row = 5 - y.
+    var w=(c.horiz?c.len:1)*S-8,h=(c.horiz?1:c.len)*S-8;
+    var x=PAD+(c.horiz?c.pos:c.fixed)*S+4;
+    var yTop=c.horiz?c.fixed:(c.pos+c.len-1);   // topmost board-y the car covers
+    var y2=PAD+(5-yTop)*S+4;
+    var r=document.createElementNS(ns,'rect');
+    r.setAttribute('x',x);r.setAttribute('y',y2);r.setAttribute('width',w);r.setAttribute('height',h);r.setAttribute('rx',5);
+    g.appendChild(r);
+    var t=document.createElementNS(ns,'text');
+    t.setAttribute('x',x+w/2);t.setAttribute('y',y2+h/2);t.textContent=c.id;
+    g.appendChild(t);
+    svg.appendChild(g);
+  });
+}
+function makeDraggable(svg,cars,onMove){
+  var S=44,drag=null;
+  svg.addEventListener('pointerdown',function(ev){
+    var g=ev.target.closest('.car');if(!g)return;
+    var i=+g.getAttribute('data-i');
+    var pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;
+    var loc=pt.matrixTransform(svg.getScreenCTM().inverse());
+    drag={i:i,sx:loc.x,sy:loc.y,start:cars[i].pos};
+    g.classList.add('drag');ev.preventDefault();
+  });
+  addEventListener('pointermove',function(ev){
+    if(!drag)return;
+    var pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;
+    var loc=pt.matrixTransform(svg.getScreenCTM().inverse());
+    var c=cars[drag.i];
+    var d=c.horiz?Math.round((loc.x-drag.sx)/S):Math.round(-(loc.y-drag.sy)/S);
+    var want=drag.start+d, step=want>c.pos?1:-1;
+    while(c.pos!==want){ if(!canPlace(cars,drag.i,c.pos+step))break; c.pos+=step; }
+    onMove(drag.i);
+  });
+  addEventListener('pointerup',function(){
+    if(!drag)return;
+    var moved=cars[drag.i].pos!==drag.start;
+    svg.querySelectorAll('.car').forEach(function(g){g.classList.remove('drag');});
+    drag=null; if(moved)onMove(-1,true);
+  });
+}
+function solved(cars){return cars[0].pos===4;}
+
+/* --- widget: playable intro puzzle (real 6-move board) --- */
+(function(){
+  var pz=P[0]; if(!pz)return;
+  var svg=document.getElementById('b_play'),f=document.getElementById('f_play'),
+      tag=document.getElementById('t_play'),cars=parse(pz.b),moves=0;
+  function redraw(){drawBoard(svg,cars);}
+  function onMove(i,done){
+    redraw();
+    if(done){moves++;f.textContent='Moves: '+moves;
+      if(solved(cars)){tag.textContent='SOLVED';tag.className='tag ok';}}
   }
+  redraw();makeDraggable(svg,cars,onMove);
+  document.getElementById('r_play').onclick=function(){
+    cars=parse(pz.b);moves=0;f.textContent='Moves: 0';
+    tag.textContent='6 moves optimal';tag.className='tag idle';
+    redraw();makeDraggable(svg,cars,onMove);};
+})();
 
-  /* ---------- [1] drag-to-solve ---------- */
-  (function(){
-    var svg=document.getElementById("solveSvg"),tag=document.getElementById("solveTag"),
-        hint=document.getElementById("solveHint"),reset=document.getElementById("solveReset");
-    var spec={exitRow:2,cars:[
-      {id:0,x:0,y:2,len:2,h:true,color:"red"},
-      {id:1,x:3,y:0,len:3,h:false,color:"steel"},
-      {id:2,x:4,y:3,len:2,h:false,color:"mauve"}
-    ]};
-    function build(){Board(svg,spec,{draggable:true,labels:true,onWin:function(){
-      tag.textContent="solved ✓";tag.className="wdg-tag ok";hint.textContent="That's the whole game. Now — what makes one hard?";}});
-      tag.textContent="unsolved";tag.className="wdg-tag idle";hint.textContent="The red car needs the exit. Clear the blockers.";}
-    build();reset.addEventListener("click",build);
-  })();
-
-  /* ---------- [3] dependency explorer ---------- */
-  (function(){
-    var trace=document.getElementById("depTrace"),tag=document.getElementById("depTag"),hint=document.getElementById("depHint");
-    // A: deep chain (red<-A<-B<-C), order to move: C(1) B(2) A(3) red(4)
-    var A={exitRow:2,cars:[
-      {id:0,x:0,y:2,len:2,h:true,color:"red"},
-      {id:1,x:3,y:1,len:3,h:false,color:"amber"},   // A blocks red
-      {id:2,x:1,y:0,len:2,h:true,color:"steel"},    // B blocks A above
-      {id:3,x:1,y:1,len:3,h:false,color:"steel"}    // C blocks B
-    ]};
-    var B={exitRow:2,cars:[
-      {id:0,x:0,y:2,len:2,h:true,color:"red"},
-      {id:1,x:2,y:2,len:1,h:false,color:"amber"},
-      {id:2,x:3,y:2,len:1,h:false,color:"steel"},
-      {id:3,x:4,y:2,len:1,h:false,color:"steel"}
-    ]};
-    var ba=Board(document.getElementById("depSvgA"),A,{labels:true});
-    var bb=Board(document.getElementById("depSvgB"),B,{labels:true});
-    var order=[3,2,1,0]; // C,B,A,red — depth 4
-    function badge(board,id,n){var g=board.gById[id];var b=g._b;
-      var cx=+b.getAttribute("x")+ +b.getAttribute("width")/2, cy=+b.getAttribute("y")+ +b.getAttribute("height")/2;
-      var c=document.createElementNS(SVGNS,"circle");c.setAttribute("cx",cx);c.setAttribute("cy",cy);c.setAttribute("r",13);c.setAttribute("class","chainbg");
-      var t=document.createElementNS(SVGNS,"text");t.setAttribute("x",cx);t.setAttribute("y",cy);t.setAttribute("class","chainno");t.textContent=n;
-      g.appendChild(c);g.appendChild(t);}
-    var running=false;
-    trace.addEventListener("click",function(){
-      if(running)return;running=true;
-      // clear old badges
-      [ba,bb].forEach(function(bd){Object.keys(bd.gById).forEach(function(id){var g=bd.gById[id];g.querySelectorAll("circle,.chainno").forEach&&g.querySelectorAll("circle,.chainno").forEach(function(n){n.remove();});});});
-      tag.textContent="depth = 1";tag.className="wdg-tag idle";
-      // right board: all independent → badge each "1"
-      [1,2,3].forEach(function(id){badge(bb,id,"1");});
-      // left board: sequential reveal
-      var i=0;
-      (function step(){
-        if(i>=order.length){tag.textContent="depth = 4";tag.className="wdg-tag ok";
-          hint.textContent="Left: four moves, forced in order. Right: four moves, any order. Same count — not the same puzzle.";running=false;return;}
-        badge(ba,order[i],i+1);i++;setTimeout(step,reduce?0:650);
-      })();
-    });
-  })();
-
-  /* ---------- [4] counterintuitive ---------- */
-  (function(){
-    var svg=document.getElementById("ciSvg"),tag=document.getElementById("ciTag"),
-        g=document.getElementById("ciGreedy"),bk=document.getElementById("ciBack");
-    // red at x1..2 row2; blocker vertical at x4 rows0..1 needs to drop into red's vacated cell(s)
-    var spec={exitRow:2,cars:[
-      {id:0,x:1,y:2,len:2,h:true,color:"red"},
-      {id:1,x:4,y:0,len:3,h:false,color:"amber"}, // fills col4 rows0-2, blocks the exit lane
-      {id:2,x:0,y:0,len:2,h:false,color:"steel"}
-    ]};
-    var board;
-    function build(){board=Board(svg,spec,{labels:true});tag.textContent="your call";tag.className="wdg-tag idle";}
-    build();
-    g.addEventListener("click",function(){
-      // greedy: shove red right — blocked immediately by amber in col4? red is x1-2, moving right hits x3 free then x4 amber. It advances 1 then stuck.
-      board.cars[0].x=2;board.draw();
-      tag.textContent="still stuck ✗";tag.className="wdg-tag no";
-      if(!reduce)svg.animate([{transform:"translateX(0)"},{transform:"translateX(-4px)"},{transform:"translateX(4px)"},{transform:"translateX(0)"}],{duration:260});
-      setTimeout(function(){board.cars[0].x=1;board.draw();},450);
-    });
-    bk.addEventListener("click",function(){
-      // back away: red left to x0, freeing col2-3; amber can drop; then red exits. Show the sequence.
-      board.cars[0].x=0;board.draw();
-      setTimeout(function(){board.cars[1].y=3;board.draw();},reduce?0:400); // amber drops
-      setTimeout(function(){board.cars[0].x=4;board.draw();tag.textContent="free ✓";tag.className="wdg-tag ok";},reduce?0:850);
-    });
-  })();
-
-  /* ---------- [2] scatter ---------- */
-  (function(){
-    var svg=document.getElementById("scatterSvg"),rhoEl=document.getElementById("scRho"),tipEl=document.getElementById("scTip");
-    var data=window.CORPUS||[];
-    var W=640,H=420,L=64,R=20,T=24,Bm=52;
-    var colors={sq:"#E8C068",hx_low:"color",hx_med:"#6B7A8D",hx_high:"#7D9A6A"};
-    function col(s){return s==="sq"?"#E8C068":s==="hx_low"?"#3a4650":s==="hx_med"?"#6B7A8D":"#7D9A6A";}
-    var xmode="st";
-    var oExtent=extent(data.map(function(p){return p.o;}));
-    function extent(a){return [Math.min.apply(null,a),Math.max.apply(null,a)];}
-    function xval(p){return xmode==="st"?Math.log(p.st):p.d;}
-    function build(){
-      svg.innerHTML="";
-      var xs=data.map(xval),xe=extent(xs);
-      // axes
-      svg.appendChild(el("line",{x1:L,y1:H-Bm,x2:W-R,y2:H-Bm,class:"sc-axis"}));
-      svg.appendChild(el("line",{x1:L,y1:T,x2:L,y2:H-Bm,class:"sc-axis"}));
-      var yl=el("text",{x:14,y:H/2,class:"sc-lab",transform:"rotate(-90 14 "+(H/2)+")","text-anchor":"middle"});yl.textContent="solution length →";svg.appendChild(yl);
-      var xl=el("text",{x:(L+W-R)/2,y:H-16,class:"sc-lab","text-anchor":"middle"});
-      xl.textContent=xmode==="st"?"total states (log) →":"dependency depth →";svg.appendChild(xl);
-      var ti=el("text",{x:L,y:16,class:"sc-title"});ti.textContent=xmode==="st"?"a shapeless cloud — size barely relates to difficulty":"a clean climb — deeper puzzles take more moves";svg.appendChild(ti);
-      function px(p){return L+((xval(p)-xe[0])/((xe[1]-xe[0])||1))*(W-R-L);}
-      function py(p){return (H-Bm)-((p.o-oExtent[0])/((oExtent[1]-oExtent[0])||1))*(H-Bm-T);}
-      data.forEach(function(p){
-        var c=el("circle",{cx:px(p),cy:py(p),r:4,class:"sc-pt",fill:col(p.s),"fill-opacity":.72,stroke:"#000","stroke-opacity":.25});
-        c.addEventListener("pointerenter",function(){tipEl.textContent=p.s+" · "+p.st+" states · depth "+p.d+" · "+p.o+" moves";c.setAttribute("r",7);});
-        c.addEventListener("pointerleave",function(){tipEl.textContent="Vertical axis is solution length. Hover a dot for its numbers.";c.setAttribute("r",4);});
-        svg.appendChild(c);
-      });
-      rhoEl.textContent=xmode==="st"?"ρ ≈ 0.03":"ρ ≈ 0.88";
-      rhoEl.style.color=xmode==="st"?"var(--terra)":"var(--sage)";
+/* --- widget: state-space fan-out (real reachable counts) --- */
+(function(){
+  var pz=P[0]; if(!pz)return;
+  var svg=document.getElementById('b_fan'),bar=document.getElementById('fanbar'),
+      kEl=document.getElementById('fan_k'),nEl=document.getElementById('fan_n'),
+      btn=document.getElementById('fan_go'),k=1,fan=pz.fan;
+  drawBoard(svg,parse(pz.b));
+  function render(){
+    var ns='http://www.w3.org/2000/svg';
+    while(bar.firstChild)bar.removeChild(bar.firstChild);
+    var max=fan[fan.length-1];
+    for(var i=0;i<fan.length;i++){
+      var h=Math.max(2,fan[i]/max*60), on=i<k;
+      var r=document.createElementNS(ns,'rect');
+      r.setAttribute('x',12+i*64);r.setAttribute('y',68-h);
+      r.setAttribute('width',44);r.setAttribute('height',h);r.setAttribute('rx',2);
+      r.setAttribute('fill',on?'#E8C068':'#2a2820');
+      bar.appendChild(r);
+      var t=document.createElementNS(ns,'text');
+      t.setAttribute('x',34+i*64);t.setAttribute('y',82);
+      t.setAttribute('fill','#6A6358');t.setAttribute('font-size','10');
+      t.setAttribute('text-anchor','middle');t.setAttribute('font-family',"'JetBrains Mono',monospace");
+      t.textContent=i+' mv';bar.appendChild(t);
+      if(on){var v=document.createElementNS(ns,'text');
+        v.setAttribute('x',34+i*64);v.setAttribute('y',66-h);
+        v.setAttribute('fill','#E8C068');v.setAttribute('font-size','10');
+        v.setAttribute('text-anchor','middle');v.setAttribute('font-family',"'JetBrains Mono',monospace");
+        v.textContent=fan[i];bar.appendChild(v);}
     }
-    build();
-    document.querySelectorAll("#w-scatter .toggle").forEach(function(t){
-      t.addEventListener("click",function(){
-        document.querySelectorAll("#w-scatter .toggle").forEach(function(o){o.classList.remove("active");});
-        t.classList.add("active");xmode=t.dataset.x;build();
+    kEl.textContent=k-1;nEl.textContent=fan[k-1].toLocaleString();
+  }
+  render();
+  btn.onclick=function(){k=k>=fan.length?1:k+1;render();
+    btn.textContent=k>=fan.length?'Restart':'Expand';};
+})();
+
+/* --- static contrast boards --- */
+(function(){
+  if(P[0])drawBoard(document.getElementById('b_big'),parse(P[0].b));
+  if(P[1])drawBoard(document.getElementById('b_small'),parse(P[1].b));
+  if(P[2])drawBoard(document.getElementById('b_shal'),parse(P[2].b));
+  if(P[3])drawBoard(document.getElementById('b_deep'),parse(P[3].b));
+})();
+
+/* --- widget: dependency step-through (real solution) --- */
+(function(){
+  var pz=P[3]; if(!pz)return; // depth-11 board
+  var svg=document.getElementById('b_dep'),iEl=document.getElementById('dep_i'),
+      tag=document.getElementById('dep_tag'),msg=document.getElementById('dep_msg'),
+      cars=parse(pz.b),step=0;
+  drawBoard(svg,cars);
+  document.getElementById('dep_step').onclick=function(){
+    if(step>=pz.mv.length){msg.textContent='Solved. Every move was a prerequisite for the next.';return;}
+    var m=pz.mv[step];cars[m[0]].pos=m[2];step++;
+    drawBoard(svg,cars,{dimExcept:m[0]});
+    iEl.textContent=step;
+    tag.textContent='depth '+Math.min(step,pz.dep);
+    msg.textContent='Car '+cars[m[0]].id+' moves — clearing space the next move needs.';
+    if(step>=pz.mv.length){tag.className='tag ok';tag.textContent='depth '+pz.dep;}
+  };
+  document.getElementById('dep_reset').onclick=function(){
+    cars=parse(pz.b);step=0;drawBoard(svg,cars);iEl.textContent='0';
+    tag.textContent='depth 1';tag.className='tag idle';
+    msg.textContent='Press Step to play the solver\\u2019s solution.';};
+})();
+
+/* --- widget: counterintuitive distance meter (real solution) --- */
+(function(){
+  var pz=P[5]; if(!pz)return; // ci 0.818 board
+  var svg=document.getElementById('b_ci'),bar=document.getElementById('cibar'),
+      tag=document.getElementById('ci_tag'),msg=document.getElementById('ci_msg'),
+      cars=parse(pz.b),step=0,hist=[];
+  function dist(){return 4-cars[0].pos;}
+  function render(){
+    drawBoard(svg,cars);
+    var ns='http://www.w3.org/2000/svg';
+    while(bar.firstChild)bar.removeChild(bar.firstChild);
+    hist.forEach(function(d,i){
+      var h=Math.max(3,d*11),worse=i>0&&d>=hist[i-1];
+      var r=document.createElementNS(ns,'rect');
+      r.setAttribute('x',10+i*30);r.setAttribute('y',50-h);
+      r.setAttribute('width',22);r.setAttribute('height',h);r.setAttribute('rx',2);
+      r.setAttribute('fill',worse?'#FF5E3A':'#7D9A6A');
+      bar.appendChild(r);});
+    tag.textContent='step '+step+'/'+pz.mv.length;
+  }
+  hist.push(dist());render();
+  document.getElementById('ci_step').onclick=function(){
+    if(step>=pz.mv.length){msg.textContent='Solved — after 9 moves that looked like mistakes.';return;}
+    var prev=dist(),m=pz.mv[step];cars[m[0]].pos=m[2];step++;
+    hist.push(dist());render();
+    msg.textContent=dist()>=prev
+      ? 'Red car got no closer \\u2014 and that was correct.'
+      : 'Progress toward the exit.';
+  };
+  document.getElementById('ci_reset').onclick=function(){
+    cars=parse(pz.b);step=0;hist=[dist()];render();
+    msg.textContent='82% of these moves make the position look worse.';};
+})();
+
+/* ---------- hex rendering (real decoded puzzles) ---------- */
+function hexPt(q,r,size,ox,oy){return{x:ox+size*1.5*q,y:oy+size*Math.sqrt(3)*(r+q*0.5)};}
+function hexPath(cx,cy,s){
+  var p='';for(var i=0;i<6;i++){var a=Math.PI/180*(60*i);
+    p+=(i?'L':'M')+(cx+s*Math.cos(a)).toFixed(1)+' '+(cy+s*Math.sin(a)).toFixed(1);}
+  return p+'Z';
+}
+function drawHex(svg,pieces,exit,size,ox,oy,opts){
+  opts=opts||{};
+  var ns='http://www.w3.org/2000/svg';
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  if(!HEX)return;
+  HEX.cells.forEach(function(c){
+    var p=hexPt(c[0],c[1],size,ox,oy);
+    var path=document.createElementNS(ns,'path');
+    var isExit=exit&&c[0]===exit[0]&&c[1]===exit[1];
+    path.setAttribute('class','hexc'+(isExit?' exit':''));
+    path.setAttribute('d',hexPath(p.x,p.y,size*0.92));
+    svg.appendChild(path);});
+  pieces.forEach(function(pc,i){
+    var g=document.createElementNS(ns,'g');
+    g.setAttribute('data-i',i);g.setAttribute('style','cursor:grab');
+    pc.c.forEach(function(cell){
+      var p=hexPt(cell[0],cell[1],size,ox,oy);
+      var path=document.createElementNS(ns,'path');
+      path.setAttribute('class','hexp');
+      path.setAttribute('d',hexPath(p.x,p.y,size*0.80));
+      path.setAttribute('fill',i===0?'#FF5E3A':['#6B7A8D','#C49A3C','#9A7AB0','#C47A5A','#7D9A6A','#6B7A8D','#C49A3C','#9A7AB0'][i%8]);
+      g.appendChild(path);});
+    svg.appendChild(g);});
+}
+
+/* --- widget: three axes --- */
+(function(){
+  var svg=document.getElementById('b_axes'); if(!svg||!HEX)return;
+  var tag=document.getElementById('ax_tag'),msg=document.getElementById('ax_msg'),ax=0;
+  var LBL=['Axis 1 — flat, left/right','Axis 2 — down-right / up-left','Axis 3 — down-left / up-right'];
+  var DELTA=[[1,0],[0,1],[-1,1]];
+  function render(){
+    var ns='http://www.w3.org/2000/svg',size=22,ox=26,oy=18;
+    while(svg.firstChild)svg.removeChild(svg.firstChild);
+    HEX.cells.forEach(function(c){
+      var p=hexPt(c[0],c[1],size,ox,oy);
+      var path=document.createElementNS(ns,'path');
+      path.setAttribute('class','hexc');
+      path.setAttribute('d',hexPath(p.x,p.y,size*0.92));
+      svg.appendChild(path);});
+    // a 2-cell piece at the centre, oriented on the active axis
+    var q=3,r=3,d=DELTA[ax];
+    [[q,r],[q+d[0],r+d[1]]].forEach(function(cell){
+      var p=hexPt(cell[0],cell[1],size,ox,oy);
+      var path=document.createElementNS(ns,'path');
+      path.setAttribute('d',hexPath(p.x,p.y,size*0.80));
+      path.setAttribute('fill','#E8C068');path.setAttribute('class','hexp');
+      svg.appendChild(path);});
+    // arrows both ways along the axis
+    [1,-1].forEach(function(s){
+      var a=hexPt(q+d[0]*(s>0?2:-1),r+d[1]*(s>0?2:-1),size,ox,oy);
+      var b=hexPt(q+d[0]*(s>0?3.1:-2.1),r+d[1]*(s>0?3.1:-2.1),size,ox,oy);
+      var l=document.createElementNS(ns,'line');
+      l.setAttribute('x1',a.x);l.setAttribute('y1',a.y);
+      l.setAttribute('x2',b.x);l.setAttribute('y2',b.y);
+      l.setAttribute('stroke','#E8C068');l.setAttribute('stroke-width','3');
+      l.setAttribute('opacity','.85');svg.appendChild(l);});
+    tag.textContent='axis '+(ax+1)+' of 3';
+    msg.textContent=LBL[ax];
+  }
+  render();
+  document.getElementById('ax_next').onclick=function(){ax=(ax+1)%3;render();};
+})();
+
+/* --- widget: playable hex puzzle --- */
+(function(){
+  var svg=document.getElementById('b_hex');
+  if(!svg||!HEX||!HEX.puzzles||!HEX.puzzles.length)return;
+  var pz=HEX.puzzles[1]||HEX.puzzles[0];
+  var tag=document.getElementById('t_hex'),f=document.getElementById('f_hex');
+  var size=20,ox=26,oy=16,moves=0;
+  var pieces=JSON.parse(JSON.stringify(pz.pieces));
+  var DELTA=[[1,0],[0,1],[-1,1]];
+  tag.textContent='solves in '+pz.opt;
+  function inHex(q,r){return HEX.cells.some(function(c){return c[0]===q&&c[1]===r;});}
+  function occupied(skip){
+    var s={};pieces.forEach(function(p,i){if(i===skip)return;
+      p.c.forEach(function(c){s[c[0]+','+c[1]]=1;});});return s;}
+  function slide(i,dir){
+    var p=pieces[i],d=DELTA[p.ax],occ=occupied(i);
+    var nc=p.c.map(function(c){return [c[0]+d[0]*dir,c[1]+d[1]*dir];});
+    if(!nc.every(function(c){return inHex(c[0],c[1])&&!occ[c[0]+','+c[1]];}))return false;
+    p.c=nc;return true;
+  }
+  function render(){drawHex(svg,pieces,pz.exit,size,ox,oy);attach();}
+  function attach(){
+    svg.querySelectorAll('g[data-i]').forEach(function(g){
+      g.addEventListener('pointerdown',function(ev){
+        var i=+g.getAttribute('data-i');
+        var pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;
+        var st=pt.matrixTransform(svg.getScreenCTM().inverse());
+        function up(ev2){
+          removeEventListener('pointermove',mv);removeEventListener('pointerup',up);
+          var pt2=svg.createSVGPoint();pt2.x=ev2.clientX;pt2.y=ev2.clientY;
+          var en=pt2.matrixTransform(svg.getScreenCTM().inverse());
+          var dx=en.x-st.x,dy=en.y-st.y;
+          if(Math.hypot(dx,dy)<10)return;
+          var d=DELTA[pieces[i].ax];
+          var vx=size*1.5*d[0], vy=size*Math.sqrt(3)*(d[1]+d[0]*0.5);
+          var dir=(dx*vx+dy*vy)>0?1:-1;
+          if(slide(i,dir)){moves++;f.textContent='Moves: '+moves;
+            var red=pieces[0].c.some(function(c){return c[0]===pz.exit[0]&&c[1]===pz.exit[1];});
+            if(red){tag.textContent='SOLVED';tag.className='tag ok';}}
+          render();
+          ev2.preventDefault();
+        }
+        function mv(e){e.preventDefault();}
+        addEventListener('pointermove',mv);addEventListener('pointerup',up);
+        ev.preventDefault();
       });
     });
-  })();
+  }
+  render();
+  document.getElementById('r_hex').onclick=function(){
+    pieces=JSON.parse(JSON.stringify(pz.pieces));moves=0;
+    f.textContent='Moves: 0';tag.textContent='solves in '+pz.opt;tag.className='tag idle';render();};
+})();
 
-  /* ---------- [5] correlation strips ---------- */
-  (function(){
-    var strips=[
-      ["dependency_depth",[.607,.655,.764,.831],"0.61 → 0.83","g","★ "],
-      ["counterintuitive_frac",[.435,.529,.684,.754],"0.44 → 0.75","g",""],
-      ["optimal_solutions",[.462,.560,.625,.684],"0.46 → 0.68","g",""],
-      ["min_mobility",[-.247,-.178,-.348,-.249],"−0.35 → −0.18","w",""],
-      ["total_states",[.146,.029,-.105,.116],"−0.11 → 0.15","w",""]
-    ];
-    var cls=["sq","h1","h2","h3"];
-    function pos(r){return ((r+0.6)/1.5*100);}
-    var host=document.getElementById("strips");
-    strips.forEach(function(s){
-      var d=document.createElement("div");d.className="strip";
-      var dots=s[1].map(function(r,i){return '<span class="dot '+cls[i]+'" style="left:'+pos(r).toFixed(1)+'%"></span>';}).join("");
-      d.innerHTML='<div class="sh"><span class="sn">'+s[4]+s[0]+'</span><span class="sr '+s[3]+'">ρ '+s[2]+'</span></div>'+
-        '<div class="track"><span class="zero"></span>'+dots+'</div>';
-      host.appendChild(d);
-    });
-  })();
+/* --- density bar chart --- */
+(function(){
+  var svg=document.getElementById('dens'); if(!svg)return;
+  var ns='http://www.w3.org/2000/svg';
+  var D=[{l:'square',v:0.607,c:'#E8C068'},{l:'hex sparse',v:0.655,c:'#3f4a56'},
+         {l:'hex medium',v:0.764,c:'#6B7A8D'},{l:'hex dense',v:0.831,c:'#7D9A6A'}];
+  D.forEach(function(d,i){
+    var w=d.v/0.9*380, y=30+i*54;
+    var bg=document.createElementNS(ns,'rect');
+    bg.setAttribute('x',140);bg.setAttribute('y',y);bg.setAttribute('width',380);
+    bg.setAttribute('height',26);bg.setAttribute('rx',3);bg.setAttribute('fill','#211e17');
+    svg.appendChild(bg);
+    var r=document.createElementNS(ns,'rect');
+    r.setAttribute('x',140);r.setAttribute('y',y);r.setAttribute('width',0);
+    r.setAttribute('height',26);r.setAttribute('rx',3);r.setAttribute('fill',d.c);
+    svg.appendChild(r);
+    setTimeout(function(){r.style.transition='width 1s cubic-bezier(.2,.7,.2,1)';
+      r.setAttribute('width',w);},120+i*130);
+    var t=document.createElementNS(ns,'text');
+    t.setAttribute('x',128);t.setAttribute('y',y+18);t.setAttribute('text-anchor','end');
+    t.setAttribute('fill','#C8C2B4');t.setAttribute('font-size','12');
+    t.setAttribute('font-family',"'JetBrains Mono',monospace");t.textContent=d.l;
+    svg.appendChild(t);
+    var v=document.createElementNS(ns,'text');
+    v.setAttribute('x',146+w);v.setAttribute('y',y+18);
+    v.setAttribute('fill','#E8C068');v.setAttribute('font-size','12');
+    v.setAttribute('font-family',"'JetBrains Mono',monospace");v.textContent=d.v.toFixed(2);
+    svg.appendChild(v);
+  });
+  var cap=document.createElementNS(ns,'text');
+  cap.setAttribute('x',140);cap.setAttribute('y',18);cap.setAttribute('fill','#6A6358');
+  cap.setAttribute('font-size','11');cap.setAttribute('font-family',"'JetBrains Mono',monospace");
+  cap.textContent='how strongly dependency depth predicts difficulty  (ρ)';
+  svg.appendChild(cap);
+})();
 
-  /* ---------- [6] itch embed (data-itch on .outro turns it live) ---------- */
-  (function(){
-    var out=document.querySelector(".outro"),url=out&&out.getAttribute("data-itch");
-    var link=document.getElementById("playLink");
-    if(url){
-      document.getElementById("embed").innerHTML='<iframe src="'+url+'" allowfullscreen title="Gridlocked playable build"></iframe>';
-    }
-    if(link&&url)link.href=url;
-  })();
+/* --- scatter with axis flip (real corpus) --- */
+(function(){
+  var svg=document.getElementById('scat'); if(!svg||!CORPUS.length)return;
+  var hint=document.getElementById('scathint'),mode='st';
+  var W=560,H=400,L=58,R=18,T=18,B=44;
+  var CMAP={sq:'#E8C068',hx_low:'#3f4a56',hx_med:'#6B7A8D',hx_high:'#7D9A6A'};
+  function render(){
+    var ns='http://www.w3.org/2000/svg';
+    while(svg.firstChild)svg.removeChild(svg.firstChild);
+    var xs=CORPUS.map(function(p){return mode==='st'?p.st:p.d;});
+    var ys=CORPUS.map(function(p){return p.o;});
+    var xmax=Math.max.apply(null,xs),ymax=Math.max.apply(null,ys);
+    // axes
+    [[L,T,L,H-B],[L,H-B,W-R,H-B]].forEach(function(a){
+      var l=document.createElementNS(ns,'line');
+      l.setAttribute('x1',a[0]);l.setAttribute('y1',a[1]);
+      l.setAttribute('x2',a[2]);l.setAttribute('y2',a[3]);
+      l.setAttribute('stroke','#2a2820');l.setAttribute('stroke-width','1.5');svg.appendChild(l);});
+    CORPUS.forEach(function(p){
+      var xv=mode==='st'?p.st:p.d;
+      var cx=L+(xv/xmax)*(W-L-R), cy=(H-B)-(p.o/ymax)*(H-T-B);
+      var c=document.createElementNS(ns,'circle');
+      c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',2.6);
+      c.setAttribute('fill',CMAP[p.s]||'#6B7A8D');c.setAttribute('opacity','.72');
+      svg.appendChild(c);});
+    function lab(x,y,txt,anchor){
+      var t=document.createElementNS(ns,'text');
+      t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('fill','#6A6358');
+      t.setAttribute('font-size','11');t.setAttribute('font-family',"'JetBrains Mono',monospace");
+      if(anchor)t.setAttribute('text-anchor',anchor);t.textContent=txt;svg.appendChild(t);}
+    lab(W/2,H-12,mode==='st'?'total reachable positions →':'dependency depth →','middle');
+    lab(14,T+10,'moves');
+    lab(L,H-B+16,'0');
+    lab(W-R,H-B+16,mode==='st'?xmax.toLocaleString():String(xmax),'end');
+    hint.textContent=mode==='st'
+      ? '550 real puzzles. Size tells you nothing — ρ = 0.03.'
+      : 'Same 550 puzzles, one axis changed. Depth tells you almost everything — ρ = 0.88.';
+  }
+  render();
+  document.querySelectorAll('.toggle').forEach(function(b){
+    b.onclick=function(){
+      document.querySelectorAll('.toggle').forEach(function(o){o.classList.remove('active');});
+      b.classList.add('active');mode=b.getAttribute('data-x');render();};});
+})();
+
 })();
 </script>
 </body>
