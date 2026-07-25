@@ -85,6 +85,11 @@
   .car.dim rect{opacity:.32}
   .car text{fill:#0d0c07;font-family:var(--font-mono);font-weight:500;font-size:14px;text-anchor:middle;dominant-baseline:central;pointer-events:none}
   .exitl{fill:var(--amber);font-family:var(--font-mono);font-size:11px;letter-spacing:.08em}
+  .chain{display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:2px 16px 14px;min-height:40px}
+  .chain .lnk{font-family:var(--font-mono);font-size:12px;min-width:26px;height:26px;border-radius:4px;
+    display:flex;align-items:center;justify-content:center;color:#0d0c07;font-weight:500;padding:0 5px}
+  .chain .arr{color:var(--text-muted);font-size:11px}
+  .chain .none{color:var(--text-muted);font-size:11px}
   .hexc{fill:var(--raised);stroke:#000;stroke-opacity:.35}
   .hexc.exit{fill:#2a3320;stroke:var(--sage)}
   .hexp{stroke:rgba(0,0,0,.4);stroke-width:1.5}
@@ -247,15 +252,28 @@
 <section class="beat">
   <div class="eyebrow win">The thing that works</div>
   <h2>What has to move before what.</h2>
-  <p>Every move in a solution clears space that some later move needs. Trace those hand-offs and you get a chain: <b>C must move before B, which must move before A, which frees the red car.</b></p>
-  <p>The length of the longest such chain is the puzzle's <span class="amber">dependency depth</span> — how many steps of consequence you have to hold in your head at once. Step through a real solution and watch the chain build.</p>
+  <p>When a car moves into space another car just left, the second one <b>depended</b> on the first. Trace those hand-offs and every puzzle reveals a structure.</p>
+  <p>Two real puzzles below. <b>Both take exactly six moves</b> — by solution length they're identical. Step them together and watch the hand-offs form.</p>
 </section>
 
-<figure class="fig narrow reveal">
-  <div class="wdg-head"><span>Real 11-move solution · step <b id="dep_i">0</b>/11</span><span class="tag idle" id="dep_tag">depth 1</span></div>
-  <svg class="bsvg" id="b_dep" viewBox="0 0 300 300"></svg>
-  <div class="wdg-foot"><span id="dep_msg">Press Step to play the solver's solution.</span>
+<figure class="fig reveal">
+  <div class="two">
+    <div>
+      <h4>Separate hand-offs</h4>
+      <div class="stats"><span>6 moves</span><span>depth <b class="big" style="color:var(--sage)">2</b></span></div>
+      <svg class="bsvg" id="b_dep1" viewBox="0 0 300 300" style="max-width:250px"></svg>
+      <div class="chain" id="ch1"></div>
+    </div>
+    <div>
+      <h4>One long chain</h4>
+      <div class="stats"><span>6 moves</span><span>depth <b class="big" style="color:var(--coral)">6</b></span></div>
+      <svg class="bsvg" id="b_dep2" viewBox="0 0 300 300" style="max-width:250px"></svg>
+      <div class="chain" id="ch2"></div>
+    </div>
+  </div>
+  <div class="wdg-foot"><span id="dep_msg">Press Step to play both solutions at once.</span>
     <span><button class="btn" id="dep_step">Step</button> <button class="btn" id="dep_reset">Reset</button></span></div>
+  <div class="cap">Left: three separate two-car hand-offs. Nothing waits on more than one thing, so you can work them in almost any order. Right: a single chain six cars long, where each car is waiting on the one before it — you have to see the whole sequence before the first move makes sense. Same six moves, and that's the difference dependency depth measures.</div>
 </figure>
 
 <section class="beat">
@@ -631,26 +649,92 @@ function solved(cars){return cars[0].pos===4;}
   if(P[3])drawBoard(document.getElementById('b_deep'),parse(P[3].b));
 })();
 
-/* --- widget: dependency step-through (real solution) --- */
+/* --- widget: dependency contrast (two real puzzles, stepped together) ---
+   Dependency rule matches the C# RushHourMetrics exactly: car B depends on car A
+   when B moves into a cell A most recently vacated. Chains are computed live from
+   the real solutions — the depth readout is derived, never a step counter.
+   Each maximal chain gets its own row, so "three separate chains" and "one long
+   chain" are visually distinguishable, not just different numbers. */
 (function(){
-  var pz=P[3]; if(!pz)return; // depth-11 board
-  var svg=document.getElementById('b_dep'),iEl=document.getElementById('dep_i'),
-      tag=document.getElementById('dep_tag'),msg=document.getElementById('dep_msg'),
-      cars=parse(pz.b),step=0;
-  drawBoard(svg,cars);
+  var A=P[8],Bd=P[9]; if(!A||!Bd)return;
+  var PAL=['#6B7A8D','#C49A3C','#9A7AB0','#C47A5A','#7D9A6A'];
+
+  function cellsOf(c){
+    var out=[];
+    for(var k=0;k<c.len;k++)
+      out.push((c.horiz?c.pos+k:c.fixed)+','+(c.horiz?c.fixed:c.pos+k));
+    return out;
+  }
+  function allChains(edges){
+    var succ={},hasIn={},nodes={};
+    edges.forEach(function(e){
+      (succ[e[0]]=succ[e[0]]||[]).push(e[1]);
+      hasIn[e[1]]=1;nodes[e[0]]=1;nodes[e[1]]=1;});
+    var roots=Object.keys(nodes).map(Number).filter(function(n){return !hasIn[n];});
+    return roots.map(function(r){
+      var best=[];
+      (function dfs(n,path){
+        if(path.indexOf(n)>=0)return;
+        path=path.concat([n]);
+        if(path.length>best.length)best=path;
+        (succ[n]||[]).forEach(function(s){dfs(s,path);});
+      })(r,[]);
+      return best;
+    });
+  }
+
+  function makeWidget(pz,svgId,chainId){
+    var svg=document.getElementById(svgId),chainEl=document.getElementById(chainId);
+    var w={cars:parse(pz.b),step:0,lastVac:{},edges:[],pz:pz};
+    w.paint=function(){
+      var chains=allChains(w.edges);
+      chainEl.innerHTML='';
+      if(!chains.length){
+        var s=document.createElement('span');s.className='none';
+        s.textContent='no dependencies yet';chainEl.appendChild(s);return;}
+      chains.forEach(function(ch){
+        var row=document.createElement('div');
+        row.style.cssText='display:flex;gap:5px;align-items:center;width:100%';
+        ch.forEach(function(ci,k){
+          if(k){var a=document.createElement('span');a.className='arr';a.textContent='→';row.appendChild(a);}
+          var b=document.createElement('span');b.className='lnk';
+          b.style.background=ci===0?'#FF5E3A':PAL[ci%PAL.length];
+          b.textContent=w.cars[ci].id;row.appendChild(b);});
+        chainEl.appendChild(row);});
+    };
+    w.stepOnce=function(){
+      if(w.step>=w.pz.mv.length)return false;
+      var m=w.pz.mv[w.step],ci=m[0];
+      var before=cellsOf(w.cars[ci]);
+      w.cars[ci].pos=m[2];
+      var after=cellsOf(w.cars[ci]);
+      after.forEach(function(c){
+        if(before.indexOf(c)>=0)return;
+        if(w.lastVac[c]!=null&&w.lastVac[c]!==ci)w.edges.push([w.lastVac[c],ci]);});
+      before.forEach(function(c){ if(after.indexOf(c)<0) w.lastVac[c]=ci; });
+      w.step++;
+      drawBoard(svg,w.cars,{dimExcept:ci});
+      w.paint();
+      return true;
+    };
+    w.reset=function(){
+      w.cars=parse(pz.b);w.step=0;w.lastVac={};w.edges=[];
+      drawBoard(svg,w.cars);w.paint();};
+    w.reset();
+    return w;
+  }
+
+  var w1=makeWidget(A,'b_dep1','ch1'), w2=makeWidget(Bd,'b_dep2','ch2');
+  var msg=document.getElementById('dep_msg');
   document.getElementById('dep_step').onclick=function(){
-    if(step>=pz.mv.length){msg.textContent='Solved. Every move was a prerequisite for the next.';return;}
-    var m=pz.mv[step];cars[m[0]].pos=m[2];step++;
-    drawBoard(svg,cars,{dimExcept:m[0]});
-    iEl.textContent=step;
-    tag.textContent='depth '+Math.min(step,pz.dep);
-    msg.textContent='Car '+cars[m[0]].id+' moves — clearing space the next move needs.';
-    if(step>=pz.mv.length){tag.className='tag ok';tag.textContent='depth '+pz.dep;}
+    var a=w1.stepOnce(), b=w2.stepOnce();
+    if(!a&&!b){
+      msg.textContent='Left: three independent chains. Right: one chain, six deep.';return;}
+    msg.textContent='Left step '+w1.step+'/'+A.mv.length+'  ·  right step '+w2.step+'/'+Bd.mv.length;
   };
   document.getElementById('dep_reset').onclick=function(){
-    cars=parse(pz.b);step=0;drawBoard(svg,cars);iEl.textContent='0';
-    tag.textContent='depth 1';tag.className='tag idle';
-    msg.textContent='Press Step to play the solver\\u2019s solution.';};
+    w1.reset();w2.reset();
+    msg.textContent='Press Step to play both solutions at once.';};
 })();
 
 /* --- widget: counterintuitive distance meter (real solution) --- */
