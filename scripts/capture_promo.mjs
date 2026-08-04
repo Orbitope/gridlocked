@@ -141,6 +141,16 @@ const PROJECTS = {
       { scene: 1, out: 'what-the-agent-sees', frames: 11, fps: 1.5, from: 0.05, to: 0.95 },
       { scene: 5, out: 'results-flip',        frames: 10, fps: 1.5, from: 0.10, to: 0.95 },
     ],
+    // sandbox.dc.html is a real ticking simulation (its own page, own <x-dc> root — not part of
+    // the scrollytelling doc), not a static figure: an actual building with cars that travel
+    // between floors, load up, and empty out while queues and reward tick live. That's the asset
+    // worth leading with over any bar chart. Three variants, kept as options rather than picked
+    // down to one — decide which reads best once they're in front of you.
+    sandboxVariants: [
+      { out: 'sandbox-live',        floors: 10, cars: 4, pattern: 'midday',  intensity: '2.2' },
+      { out: 'sandbox-live-uppeak', floors: 10, cars: 4, pattern: 'up-peak', intensity: '2.2' },
+      { out: 'sandbox-live-mrung',  floors: 16, cars: 5, pattern: 'midday',  intensity: '1.6' }, // the article's real M rung
+    ],
   },
 };
 
@@ -376,6 +386,82 @@ for (const [i, name] of names.entries()) {
         report.push({ project: name, asset: `${c.out}.mp4`, ok: false, why: 'frame capture failed' });
       }
     }
+    await page.close();
+  }
+
+  // ---- live sandbox variants (RLevator only): a real ticking simulation, not a static figure
+  for (const sv of cfg.sandboxVariants || []) {
+    const page = await browser.newPage({ viewport: { width: 1180, height: 900 }, deviceScaleFactor: 2 });
+    await page.goto(`http://127.0.0.1:${port}/sandbox.dc.html`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+
+    // The header repeats some of these labels as read-only display (e.g. "PATTERN" also names
+    // the live sim-time readout), so don't take the first text match — take the one actually
+    // attached to the control.
+    const selectByLabel = async (label, value) => {
+      const handle = await page.evaluateHandle((lbl) => {
+        const spans = [...document.querySelectorAll('span')].filter(e => e.textContent.trim().toUpperCase() === lbl);
+        for (const s of spans) { const hit = s.parentElement && s.parentElement.querySelector('select'); if (hit) return hit; }
+        return null;
+      }, label);
+      const el = handle.asElement();
+      if (el) await el.selectOption(String(value));
+    };
+    await selectByLabel('FLOORS', sv.floors);
+    await page.waitForTimeout(400);
+    await selectByLabel('CARS', sv.cars);
+    await page.waitForTimeout(400);
+    await selectByLabel('PATTERN', sv.pattern);
+    await page.waitForTimeout(400);
+
+    const intensityHandle = await page.evaluateHandle(() => {
+      const spans = [...document.querySelectorAll('span')].filter(e => e.textContent.trim().toUpperCase() === 'TRAFFIC');
+      for (const s of spans) {
+        let node = s;
+        for (let i = 0; i < 3 && node; i++) { node = node.parentElement; const inp = node && node.querySelector('input[type=range]'); if (inp) return inp; }
+      }
+      return null;
+    });
+    await intensityHandle.asElement().evaluate((el, val) => {
+      // React-style controlled inputs ignore a plain .value= write (the value tracker thinks
+      // it's unchanged); go through the native setter so the framework's onChange actually fires.
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      setter.call(el, val);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }, sv.intensity);
+    await page.waitForTimeout(400);
+
+    // Zoom via CSS so text and cars render bigger — not a post-hoc crop of a wide, sparse shot.
+    await page.evaluate(() => { document.body.style.zoom = '1.35'; });
+    await page.waitForTimeout(300);
+
+    // .click() scrolls its target into view first; on a zoomed page taller than the viewport
+    // that drags the header off-screen. Click via the DOM instead, and pin scroll as a guard.
+    await page.evaluate(() => { [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'PLAY')?.click(); });
+    const pinTop = () => page.evaluate(() => window.scrollTo(0, 0));
+    await pinTop();
+    await page.waitForTimeout(11000);   // let queues build across floors before the hero shot
+    await pinTop();
+
+    const stillFile = path.join(outDir, `${sv.out}.png`);
+    await page.screenshot({ path: stillFile });
+    console.log(`  sandbox ${sv.out.padEnd(28)} still`);
+    report.push({ project: name, asset: `${sv.out}.png`, ok: true });
+
+    const fdir = path.join(tmpDir, sv.out);
+    fs.mkdirSync(fdir, { recursive: true });
+    const N = 24, everyMs = 450;
+    for (let f = 0; f < N; f++) {
+      await pinTop();
+      await page.screenshot({ path: path.join(fdir, `f${String(f).padStart(4, '0')}.png`) });
+      await page.waitForTimeout(everyMs);
+    }
+    encode(fdir, path.join(outDir, sv.out), 1000 / everyMs, 'black');
+    const mp4 = fs.statSync(path.join(outDir, `${sv.out}.mp4`)).size;
+    console.log(`  sandbox ${sv.out.padEnd(28)} clip  ${N}f  mp4 ${(mp4 / 1024 | 0)}KB`);
+    report.push({ project: name, asset: `${sv.out}.mp4`, ok: true, frames: N, mp4 });
+
     await page.close();
   }
 
