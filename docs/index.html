@@ -152,9 +152,14 @@
   .caveats .c{display:flex;gap:10px;margin-bottom:12px}
   .caveats .c::before{content:"▸";color:var(--amber);flex:none}
   .caveats b{color:var(--text-primary);font-weight:500}
-  .embed-slot{max-width:940px;margin:28px auto;border:1px dashed var(--border);border-radius:6px;padding:34px 24px;text-align:center}
+  .embed-slot{max-width:940px;margin:28px auto;border:1px solid var(--border);border-radius:6px;padding:34px 24px;text-align:center}
   .embed-slot .t{font-family:var(--font-display);font-weight:600;font-size:16px;color:var(--text-primary);letter-spacing:.06em}
   .embed-slot .s{font-size:12px;color:var(--text-muted);margin-top:8px}
+  .itch-btn{display:inline-flex;align-items:center;gap:9px;margin-top:18px;
+    font-family:var(--font-display);font-weight:600;font-size:14px;letter-spacing:.06em;text-transform:uppercase;
+    background:var(--amber);color:#151109;border-radius:4px;padding:11px 22px;text-decoration:none;transition:.2s}
+  .itch-btn:hover{background:var(--amber-bright)}
+  .itch-btn svg{flex-shrink:0}
 </style>
 </head>
 <body>
@@ -423,8 +428,14 @@
   <h2>Play it yourself.</h2>
   <p>Gridlocked is the game these puzzles come from — square and hex, both playable in the browser.</p>
   <div class="embed-slot">
-    <div class="t">WEB BUILD COMING SOON</div>
-    <div class="s">The itch.io embed lands here once the WebGL build is published.</div>
+    <div class="t">PLAY THE FULL GAME</div>
+    <div class="s">Square and hex, both playable in the browser &mdash; free on itch.io.</div>
+    <a class="itch-btn" href="https://orbitope.itch.io/gridlocked" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 111 111" fill="currentColor" aria-hidden="true">
+        <path d="M101.4 11.7C97 5.3 91.8 1 84.6.4c-1.4-.1-2.7-.1-4.1 0-6.4.5-13 3-19.4 6.4-2.4 1.3-4.8 2.7-7.1 4.2-2.3-1.5-4.7-2.9-7.1-4.2-6.4-3.4-13-5.9-19.4-6.4-1.4-.1-2.7-.1-4.1 0-7.2.6-12.4 4.9-16.8 11.3C1.4 18 .3 24.8.3 31.6c0 6.3 1 22.6 2.6 33.4 1.4 9.3 3.4 17.9 8 22.9 3.9 4.3 8.8 6.1 14.4 5.6 4.5-.4 10.2-2.6 15.6-5.7 4.9-2.8 9.3-6.3 13.6-9.9 4.3 3.6 8.7 7.1 13.6 9.9 5.4 3.1 11.1 5.3 15.6 5.7 5.6.5 10.5-1.3 14.4-5.6 4.6-5 6.6-13.6 8-22.9 1.6-10.8 2.6-27.1 2.6-33.4 0-6.8-1.1-13.6-6.4-19.9z"/>
+      </svg>
+      Play on itch.io
+    </a>
   </div>
   <p style="margin-top:28px;font-size:12px">Gridlocked · Orbitope</p>
 </section>
