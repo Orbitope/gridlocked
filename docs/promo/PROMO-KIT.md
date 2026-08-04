@@ -104,6 +104,44 @@ on average against square's 12.2). Assets are ready: `img/three-axes.mp4`, `img/
 
 ---
 
+## LinkedIn — Wed 5 Aug
+
+Matches the short-post-plus-link format that already worked for you, not a long-form narrative.
+Body stays link-free; post the link yourself as the first comment once it's up — same convention as
+the Reddit top-level comments.
+
+**Post**
+
+```text
+I solved 14,163 sliding-block puzzles exhaustively — and found that size predicts almost nothing
+about difficulty.
+
+ρ = 0.03 between puzzle size and moves-to-solve. Basically no correlation.
+
+What actually predicts it: dependency depth — how long the chain of "this piece has to move before
+that one" gets. ρ = 0.88, on the same puzzles.
+
+A board with 422 reachable positions takes 17 moves to solve. One with 11,487 positions takes 6.
+
+Then I tested whether that holds outside square grids: built the same puzzle on a hex board. The
+third axis drains the difficulty entirely (avg 4.3–7.5 moves vs. the square board's 12.2) — a piece
+that can move three ways instead of two has more outs, not more traps.
+
+Full write-up (interactive, every puzzle in the corpus) linked in the comments.
+```
+
+**Hashtags:** `#ProceduralGeneration #GameDesign #Puzzles`
+**Image:** `img/scatter-depth.png` or `img/hex-density-correlation.png`
+
+**First comment**
+
+```text
+Write-up: https://orbitope.github.io/gridlocked/
+Play it: https://orbitope.itch.io/gridlocked
+```
+
+---
+
 ## Asset index — `docs/promo/img/`
 
 All captured from `docs/index.html` itself by `scripts/capture_promo.mjs`; nothing is redrawn.
@@ -127,19 +165,24 @@ Warm-up **Wed 5 – Thu 6 Aug**: ordinary commenting, no links, in r/WebGames an
 low-level commenting going in each week's target subs throughout — with a new account this matters
 more than any single post.
 
-| Week | Reddit #1 | Reddit #2 | X |
-|---|---|---|---|
-| 1 | Thu 6 Aug — **Gridlocked** → r/WebGames | Sat 8 Aug — r/puzzles | — (already posted) |
-| 2 | Tue 11 Aug — **Hex Truchet** → r/proceduralgeneration | Thu 13 Aug — r/tabletopgamedesign | Wed 12 Aug |
-| 3 | Tue 18 Aug — **Simulacrum** → r/reinforcementlearning | Thu 20 Aug — r/MachineLearning `[P]` (gated) | Wed 19 Aug |
-| 4 | Tue 25 Aug — **Pushman** → r/Unity3D | Thu 27 Aug — r/gamedev | Wed 26 Aug |
-| 5 | Tue 1 Sep — **RLevator** → r/reinforcementlearning | Thu 3 Sep — r/MachineLearning `[P]` (gated) | Wed 2 Sep |
+| Week | Reddit #1 | Reddit #2 | X | LinkedIn |
+|---|---|---|---|---|
+| 1 | Thu 6 Aug — **Gridlocked** → r/WebGames | Sat 8 Aug — r/puzzles | — (already posted) | Wed 5 Aug |
+| 2 | Tue 11 Aug — **Hex Truchet** → r/proceduralgeneration | Thu 13 Aug — r/tabletopgamedesign | Wed 12 Aug | Wed 12 Aug |
+| 3 | Tue 18 Aug — **Simulacrum** → r/reinforcementlearning | Thu 20 Aug — r/MachineLearning `[P]` (gated) | Wed 19 Aug | Wed 19 Aug |
+| 4 | Tue 25 Aug — **Pushman** → r/Unity3D | Thu 27 Aug — r/gamedev | Wed 26 Aug | Wed 26 Aug |
+| 5 | Tue 1 Sep — **RLevator** → r/reinforcementlearning | Thu 3 Sep — r/MachineLearning `[P]` (gated) | Wed 2 Sep | Wed 2 Sep |
 
 Reddit posts land Tuesday mornings US-Eastern; the second sub is staggered two days so two threads
 are never live at once. X threads go Wednesday, a day behind Reddit, so a good comment can be folded
 in. **r/MachineLearning is gated on account standing** — skip it if the account is still thin; both
 RL projects stand fine on r/reinforcementlearning alone. r/algorithms is deliberately unused: best
 topical fit for Gridlocked, but hostile to self-promotion from a new account. Revisit after week 5.
+
+LinkedIn rides the same Wednesday slot as X — one extra post to draft per week, no new day added.
+Body stays link-free on every LinkedIn post; the link goes in your own first comment once it's up,
+same convention as Reddit. Week 1's LinkedIn post (Wed 5 Aug) is the exception that runs a day ahead
+of the Reddit warm-up, since LinkedIn has no comment-karma ramp to respect.
 
 Nothing here posts itself. Reddit and X both punish anything that reads as automated, and the
 comment replies are most of the value.
