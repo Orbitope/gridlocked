@@ -289,7 +289,7 @@
 
 <figure class="fig narrow reveal">
   <div class="wdg-head"><span>Try it — <b>drag a car</b></span><span class="tag idle" id="t_play">6 moves optimal</span></div>
-  <svg class="bsvg" id="b_play" viewBox="0 0 300 300"></svg>
+  <svg class="bsvg" id="b_play" role="img" aria-label="Interactive sliding-block puzzle. Drag a car; the red car escapes right. Solvable in six moves." viewBox="0 0 300 300"></svg>
   <div class="wdg-foot"><span id="f_play">Moves: 0</span><button class="btn" id="r_play">Reset</button></div>
 </figure>
 
@@ -307,8 +307,8 @@
 <figure class="fig reveal">
   <div class="wdg-head"><span>Distribution of puzzle size · <b>12,500 square puzzles</b></span>
     <span class="tag idle">bars = how many puzzles · line = how hard they were</span></div>
-  <svg id="dist" viewBox="0 0 620 330" style="width:100%;display:block"></svg>
-  <div class="cap">Puzzle size spans <b style="color:var(--amber-bright)">four and a half orders of magnitude</b> — from 11 positions to 293,765. If size drove difficulty, the amber line would climb steeply from left to right. It barely moves: a puzzle a thousand times larger takes about two more moves.</div>
+  <svg id="dist" role="img" aria-describedby="cap-1" aria-label="Histogram of 12,500 square puzzles by state-space size, with average moves to solve overlaid as a line." viewBox="0 0 620 330" style="width:100%;display:block"></svg>
+  <figcaption class="cap" id="cap-1">Puzzle size spans <b style="color:var(--amber-bright)">four and a half orders of magnitude</b> — from 11 positions to 293,765. If size drove difficulty, the amber line would climb steeply from left to right. It barely moves: a puzzle a thousand times larger takes about two more moves.</figcaption>
 </figure>
 
 <div class="rule"></div>
@@ -326,15 +326,15 @@
     <div>
       <h4>The big one</h4>
       <div class="stats"><span>11,487 positions</span><span><b class="big" style="color:var(--sage)">6</b> moves</span></div>
-      <svg class="bsvg" id="b_big" viewBox="0 0 300 300" style="max-width:280px"></svg>
+      <svg class="bsvg" id="b_big" role="img" aria-describedby="cap-2" aria-label="The big puzzle: 11,487 reachable positions, solved in 6 moves." viewBox="0 0 300 300" style="max-width:280px"></svg>
     </div>
     <div>
       <h4>The small one</h4>
       <div class="stats"><span>422 positions</span><span><b class="big" style="color:var(--coral)">17</b> moves</span></div>
-      <svg class="bsvg" id="b_small" viewBox="0 0 300 300" style="max-width:280px"></svg>
+      <svg class="bsvg" id="b_small" role="img" aria-describedby="cap-2" aria-label="The small puzzle: 422 reachable positions, solved in 17 moves." viewBox="0 0 300 300" style="max-width:280px"></svg>
     </div>
   </div>
-  <div class="cap">It's the other way round. The puzzle with 27× less room to move takes nearly <b style="color:var(--coral)">three times as many moves</b> to solve.</div>
+  <figcaption class="cap" id="cap-2">It's the other way round. The puzzle with 27× less room to move takes nearly <b style="color:var(--coral)">three times as many moves</b> to solve.</figcaption>
 </figure>
 
 <section class="beat">
@@ -353,7 +353,7 @@
     <span class="k"><span class="sw" data-shape="diamond" style="background:var(--sage)"></span>hex dense</span>
     <span style="margin-left:auto">Y axis = moves to solve</span>
   </div>
-  <svg id="scat" viewBox="0 0 560 400"></svg>
+  <svg id="scat" role="img" aria-label="Scatter plot of 550 puzzles, moves to solve against the selected x-axis, coloured and shaped by board type." viewBox="0 0 560 400"></svg>
   <div class="axhint" id="scathint">550 real puzzles. Size tells you nothing — ρ = 0.03.</div>
 </figure>
 
@@ -372,19 +372,19 @@
     <div>
       <h4>Separate hand-offs</h4>
       <div class="stats"><span>6 moves</span><span>depth <b class="big" style="color:var(--sage)">2</b></span></div>
-      <svg class="bsvg" id="b_dep1" viewBox="0 0 300 300" style="max-width:250px"></svg>
+      <svg class="bsvg" id="b_dep1" role="img" aria-describedby="cap-3" aria-label="Puzzle with three separate two-car hand-offs. Six moves, dependency depth 2." viewBox="0 0 300 300" style="max-width:250px"></svg>
       <div class="chain" id="ch1"></div>
     </div>
     <div>
       <h4>One long chain</h4>
       <div class="stats"><span>6 moves</span><span>depth <b class="big" style="color:var(--coral)">6</b></span></div>
-      <svg class="bsvg" id="b_dep2" viewBox="0 0 300 300" style="max-width:250px"></svg>
+      <svg class="bsvg" id="b_dep2" role="img" aria-describedby="cap-3" aria-label="Puzzle with a single six-car chain. Six moves, dependency depth 6." viewBox="0 0 300 300" style="max-width:250px"></svg>
       <div class="chain" id="ch2"></div>
     </div>
   </div>
   <div class="wdg-foot"><span id="dep_msg">Press Step to play both solutions at once.</span>
     <span><button class="btn" id="dep_step">Step</button> <button class="btn" id="dep_reset">Reset</button></span></div>
-  <div class="cap">Left: three separate two-car hand-offs. Nothing waits on more than one thing, so you can work them in almost any order. Right: a single chain six cars long, where each car is waiting on the one before it — you have to see the whole sequence before the first move makes sense. Same six moves, and that's the difference dependency depth measures.</div>
+  <figcaption class="cap" id="cap-3">Left: three separate two-car hand-offs. Nothing waits on more than one thing, so you can work them in almost any order. Right: a single chain six cars long, where each car is waiting on the one before it — you have to see the whole sequence before the first move makes sense. Same six moves, and that's the difference dependency depth measures.</figcaption>
 </figure>
 
 <section class="beat">
@@ -396,15 +396,15 @@
     <div>
       <h4>Depth 3 — shallow</h4>
       <div class="stats"><span>11 moves</span><span>depth <b class="big">3</b></span><span>states <b>1,123</b></span></div>
-      <svg class="bsvg" id="b_shal" viewBox="0 0 300 300" style="max-width:280px"></svg>
+      <svg class="bsvg" id="b_shal" role="img" aria-describedby="cap-4" aria-label="Shallow puzzle: 11 moves, dependency depth 3, 1,123 reachable states." viewBox="0 0 300 300" style="max-width:280px"></svg>
     </div>
     <div>
       <h4>Depth 11 — one long chain</h4>
       <div class="stats"><span>11 moves</span><span>depth <b class="big">11</b></span><span>states <b>47</b></span></div>
-      <svg class="bsvg" id="b_deep" viewBox="0 0 300 300" style="max-width:280px"></svg>
+      <svg class="bsvg" id="b_deep" role="img" aria-describedby="cap-4" aria-label="Deep puzzle: 11 moves, dependency depth 11, only 47 reachable states." viewBox="0 0 300 300" style="max-width:280px"></svg>
     </div>
   </div>
-  <div class="cap">Same solution length. The right-hand puzzle has one forced chain with no slack — and only 47 reachable positions, making it one of the smallest and hardest in the set.</div>
+  <figcaption class="cap" id="cap-4">Same solution length. The right-hand puzzle has one forced chain with no slack — and only 47 reachable positions, making it one of the smallest and hardest in the set.</figcaption>
 </figure>
 
 <div class="rule"></div>
@@ -419,8 +419,8 @@
 
 <figure class="fig narrow reveal">
   <div class="wdg-head"><span>Distance from red car to exit</span><span class="tag idle" id="ci_tag">step 0/11</span></div>
-  <svg class="bsvg" id="b_ci" viewBox="0 0 300 300"></svg>
-  <div style="padding:0 20px 6px"><svg id="cibar" viewBox="0 0 400 60" style="width:100%;display:block"></svg></div>
+  <svg class="bsvg" id="b_ci" role="img" aria-label="Sliding-block puzzle stepped through its solution, showing the red car’s distance from the exit." viewBox="0 0 300 300"></svg>
+  <div style="padding:0 20px 6px"><svg id="cibar" role="img" aria-label="The red car’s distance from the exit across all 11 steps of the solution." viewBox="0 0 400 60" style="width:100%;display:block"></svg></div>
   <div class="wdg-foot"><span id="ci_msg">82% of these moves make the position look worse.</span>
     <span><button class="btn" id="ci_step">Step</button> <button class="btn" id="ci_reset">Reset</button></span></div>
 </figure>
@@ -437,7 +437,7 @@
 
 <figure class="fig narrow reveal">
   <div class="wdg-head"><span>Three axes of movement</span><span class="tag idle" id="ax_tag">axis 1 of 3</span></div>
-  <svg class="bsvg" id="b_axes" viewBox="0 0 320 300" style="max-width:400px"></svg>
+  <svg class="bsvg" id="b_axes" role="img" aria-label="A hex board showing the three axes a piece can slide along." viewBox="0 0 320 300" style="max-width:400px"></svg>
   <div class="wdg-foot"><span id="ax_msg">On a square grid a piece has 2 directions. Here it has 3.</span><button class="btn" id="ax_next">Next axis</button></div>
 </figure>
 
@@ -447,7 +447,7 @@
 
 <figure class="fig narrow reveal">
   <div class="wdg-head"><span>Real hex puzzle — <b>drag a piece</b></span><span class="tag idle" id="t_hex">solves in 5</span></div>
-  <svg class="bsvg" id="b_hex" viewBox="0 0 340 320" style="max-width:420px"></svg>
+  <svg class="bsvg" id="b_hex" role="img" aria-label="Interactive hex puzzle. Drag a piece; solves in five moves." viewBox="0 0 340 320" style="max-width:420px"></svg>
   <div class="wdg-foot"><span id="f_hex">Moves: 0</span><button class="btn" id="r_hex">Reset</button></div>
 </figure>
 
@@ -459,8 +459,8 @@
 </section>
 
 <figure class="fig reveal">
-  <svg id="dens" viewBox="0 0 560 260" style="width:100%;display:block"></svg>
-  <div class="cap">Each bar: how strongly dependency depth predicts difficulty, by board type. The denser the hex board, the more structure matters.</div>
+  <svg id="dens" role="img" aria-describedby="cap-5" aria-label="Bar chart: how strongly dependency depth predicts difficulty, for square boards and three hex densities." viewBox="0 0 560 260" style="width:100%;display:block"></svg>
+  <figcaption class="cap" id="cap-5">Each bar: how strongly dependency depth predicts difficulty, by board type. The denser the hex board, the more structure matters.</figcaption>
 </figure>
 
 <div class="rule"></div>
