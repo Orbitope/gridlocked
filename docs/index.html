@@ -41,7 +41,6 @@
     --fig-bg:#0d0c07; --slate:#3f4a56; --border-strong:#3d3a30; --exit-fill:#2a3320;
     --font-display:'Rajdhani',sans-serif; --font-mono:'JetBrains Mono',monospace;
     --stroke-floor:0px;      /* raised in accessibility mode; see [data-a11y] */
-    --mark-opacity:initial;
   }
 
   /* ── Accessibility mode ────────────────────────────────────────────────
@@ -87,7 +86,6 @@
     --border-strong:#837D6B;
     --exit-fill:#3B4A26;
     --stroke-floor:2px;
-    --mark-opacity:1;
   }
   /* A blanket `stroke-width:2px` would also *thin* the strokes that are
      deliberately heavy (the 2.5 trend line, the 3px hex path). CSS can't take
@@ -102,10 +100,12 @@
   html[data-a11y] .bsvg [stroke-width="1.5"]{stroke-width:var(--stroke-floor)}
   html[data-a11y] .car rect,
   html[data-a11y] .hexp{stroke-width:var(--stroke-floor)}
-  /* Decorative transparency halves effective contrast — a .72-opacity mark
-     at 4.47:1 lands at 2.84:1, below the 3:1 floor for a graphic. */
-  html[data-a11y] .fig svg [opacity],
-  html[data-a11y] .bsvg [opacity]{opacity:var(--mark-opacity)}
+  /* An earlier version forced every [opacity] mark to 1 here. That was wrong:
+     opacity in these figures does two real jobs — encoding magnitude (a wheel
+     fill at .05 + .18x load) and layering washes under content (a percentile
+     band at .10). Forcing it opaque destroyed the first and turned the second
+     into a block that swallowed the figure. Faintness is fixed per mark, at
+     the point of drawing, not with a blanket rule. */
   html[data-a11y] .car.dim rect{opacity:.55}
   html[data-a11y] .cellr,
   html[data-a11y] .hexc{stroke:var(--border-strong);stroke-opacity:1;stroke-width:1px}
