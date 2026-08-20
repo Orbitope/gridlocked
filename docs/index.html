@@ -159,6 +159,14 @@
   .car.am rect{fill:var(--amber)} .car.mv rect{fill:var(--mauve)}
   .car.tr rect{fill:var(--terra)} .car.sg rect{fill:var(--sage)}
   .car.dim rect{opacity:.32}
+  .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
+    clip-path:inset(50%);white-space:nowrap;border:0}
+  .kbd-hint{font-size:10px;color:var(--text-muted);letter-spacing:.04em}
+  /* The focus ring goes on the car's rect, not the group — a group has no box
+     of its own, so an outline on it lands in the wrong place or nowhere. */
+  .car:focus{outline:none}
+  .car:focus-visible rect{stroke:var(--amber-bright);stroke-width:3;paint-order:stroke}
+  html[data-a11y] .car:focus-visible rect{stroke:var(--text-bright);stroke-width:4}
   .car text{fill:var(--fig-bg);font-family:var(--font-mono);font-weight:500;font-size:14px;text-anchor:middle;dominant-baseline:central;pointer-events:none}
   .exitl{fill:var(--amber);font-family:var(--font-mono);font-size:11px;letter-spacing:.08em}
   .chain{display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:2px 16px 14px;min-height:40px}
@@ -169,6 +177,11 @@
   .hexc{fill:var(--raised);stroke:#000;stroke-opacity:.35}
   .hexc.exit{fill:var(--exit-fill);stroke:var(--sage)}
   .hexp{stroke:rgba(0,0,0,.4);stroke-width:1.5}
+  .hexlab{fill:var(--fig-bg);font-family:var(--font-mono);font-weight:500;font-size:12px;
+    text-anchor:middle;dominant-baseline:central;pointer-events:none}
+  g[data-i]:focus{outline:none}
+  g[data-i]:focus-visible .hexp{stroke:var(--amber-bright);stroke-width:3}
+  html[data-a11y] g[data-i]:focus-visible .hexp{stroke:var(--text-bright);stroke-width:4}
 
   .two{display:grid;grid-template-columns:1fr 1fr;gap:0}
   .two>div{padding:0 0 6px} .two>div+div{border-left:1px solid var(--border)}
@@ -288,9 +301,10 @@
 </section>
 
 <figure class="fig narrow reveal">
-  <div class="wdg-head"><span>Try it — <b>drag a car</b></span><span class="tag idle" id="t_play">6 moves optimal</span></div>
+  <div class="wdg-head"><span>Try it — <b>drag a car</b>, or tab to one and press an arrow key</span><span class="tag idle" id="t_play">6 moves optimal</span></div>
   <svg class="bsvg" id="b_play" role="img" aria-label="Interactive sliding-block puzzle. Drag a car; the red car escapes right. Solvable in six moves." viewBox="0 0 300 300"></svg>
-  <div class="wdg-foot"><span id="f_play">Moves: 0</span><button class="btn" id="r_play">Reset</button></div>
+  <div class="wdg-foot"><span id="f_play">Moves: 0</span><span class="kbd-hint">or tab to a car and use the arrow keys</span><button class="btn" id="r_play">Reset</button></div>
+  <p id="play_live" class="sr-only" role="status" aria-live="polite"></p>
 </figure>
 
 <div class="rule"></div>
@@ -446,9 +460,10 @@
 </section>
 
 <figure class="fig narrow reveal">
-  <div class="wdg-head"><span>Real hex puzzle — <b>drag a piece</b></span><span class="tag idle" id="t_hex">solves in 5</span></div>
+  <div class="wdg-head"><span>Real hex puzzle — <b>drag a piece</b>, or tab to one and press an arrow key</span><span class="tag idle" id="t_hex">solves in 5</span></div>
   <svg class="bsvg" id="b_hex" role="img" aria-label="Interactive hex puzzle. Drag a piece; solves in five moves." viewBox="0 0 340 320" style="max-width:420px"></svg>
-  <div class="wdg-foot"><span id="f_hex">Moves: 0</span><button class="btn" id="r_hex">Reset</button></div>
+  <div class="wdg-foot"><span id="f_hex">Moves: 0</span><span class="kbd-hint">or tab to a piece and use the arrow keys</span><button class="btn" id="r_hex">Reset</button></div>
+  <p id="hex_live" class="sr-only" role="status" aria-live="polite"></p>
 </figure>
 
 <section class="beat">
@@ -646,6 +661,13 @@ function drawBoard(svg,cars,opts){
     g.setAttribute('class','car '+(i===0?'red':COLORS[i%COLORS.length])+
       (opts.dimExcept!=null&&opts.dimExcept!==i?' dim':''));
     g.setAttribute('data-i',i);
+    // Static boards are pictures, not controls — only wire up the ones you
+    // can actually move, or a reader tabs through six dead buttons.
+    if(opts.interactive){
+      g.setAttribute('tabindex','0');
+      g.setAttribute('role','button');
+      g.setAttribute('aria-label',carLabel(cars,i));
+    }
     // y is in board space (0 = bottom); screen row = 5 - y.
     var w=(c.horiz?c.len:1)*S-8,h=(c.horiz?1:c.len)*S-8;
     var x=PAD+(c.horiz?c.pos:c.fixed)*S+4;
@@ -660,6 +682,42 @@ function drawBoard(svg,cars,opts){
     svg.appendChild(g);
   });
 }
+/* A car announces what it is, which way it runs, and where it can go — the
+   last part matters most: "blocked" is the whole puzzle, and sighted players
+   read it off the board instantly. */
+function carLabel(cars,i){
+  var c=cars[i], name=(i===0?'Red car':'Car '+c.id);
+  // pos is the minimum board coordinate the car covers, and board y counts
+  // upward from the bottom, so pos+1 is right for a horizontal car and up
+  // for a vertical one.
+  var less=canPlace(cars,i,c.pos-1), more=canPlace(cars,i,c.pos+1);
+  var ways=(c.horiz?[less&&'left',more&&'right']:[more&&'up',less&&'down']).filter(Boolean);
+  return name+', '+(c.horiz?'horizontal':'vertical')+', '+c.len+' cells, '+
+    (ways.length?'can move '+ways.join(' or '):'blocked');
+}
+
+/* Keyboard equivalent of the drag. Tab moves between cars, arrows move the
+   focused car along its own axis; Home and End slide it as far as it goes.
+   drawBoard rebuilds the whole tree, so focus has to be put back by index. */
+function makeKeyboard(svg,cars,onMove,say){
+  svg.addEventListener('keydown',function(ev){
+    var g=ev.target.closest?ev.target.closest('.car'):null; if(!g)return;
+    var i=+g.getAttribute('data-i'), c=cars[i], k=ev.key, step=0;
+    if(c.horiz){ if(k==='ArrowLeft')step=-1; else if(k==='ArrowRight')step=1; }
+    else       { if(k==='ArrowDown')step=-1; else if(k==='ArrowUp')step=1; }
+    var far=(k==='Home'||k==='End');
+    if(!step&&!far)return;
+    ev.preventDefault();
+    var before=c.pos;
+    if(far){ var d=(k==='End')?1:-1; while(canPlace(cars,i,c.pos+d))c.pos+=d; }
+    else if(canPlace(cars,i,c.pos+step)) c.pos+=step;
+    if(c.pos===before){ if(say)say((i===0?'Red car':'Car '+c.id)+' is blocked that way.'); return; }
+    onMove(-1,true);
+    var again=svg.querySelector('.car[data-i="'+i+'"]');
+    if(again){ again.focus(); if(say)say(again.getAttribute('aria-label')); }
+  });
+}
+
 function makeDraggable(svg,cars,onMove){
   var S=44,drag=null;
   svg.addEventListener('pointerdown',function(ev){
@@ -694,17 +752,27 @@ function solved(cars){return cars[0].pos===4;}
   var pz=P[0]; if(!pz)return;
   var svg=document.getElementById('b_play'),f=document.getElementById('f_play'),
       tag=document.getElementById('t_play'),cars=parse(pz.b),moves=0;
-  function redraw(){drawBoard(svg,cars);}
+  var live=document.getElementById('play_live');
+  function say(msg){ if(live)live.textContent=msg; }
+  function redraw(){drawBoard(svg,cars,{interactive:true});}
   function onMove(i,done){
     redraw();
     if(done){moves++;f.textContent='Moves: '+moves;
-      if(solved(cars)){tag.textContent='SOLVED';tag.className='tag ok';}}
+      if(solved(cars)){tag.textContent='SOLVED';tag.className='tag ok';
+        say('Solved in '+moves+' moves.');}}
   }
-  redraw();makeDraggable(svg,cars,onMove);
+  redraw();
+  // Bound once, against an array that is refilled rather than replaced. The
+  // reset used to re-bind, which stacked a fresh listener on every press and
+  // left the old ones mutating a car array nothing was drawing any more.
+  makeDraggable(svg,cars,onMove);
+  makeKeyboard(svg,cars,onMove,say);
   document.getElementById('r_play').onclick=function(){
-    cars=parse(pz.b);moves=0;f.textContent='Moves: 0';
+    cars.length=0; parse(pz.b).forEach(function(c){cars.push(c);});
+    moves=0;f.textContent='Moves: 0';
     tag.textContent='6 moves optimal';tag.className='tag idle';
-    redraw();makeDraggable(svg,cars,onMove);};
+    redraw(); say('Board reset.');
+  };
 })();
 
 /* --- chart: log10 distribution of puzzle size, with mean difficulty overlay ---
@@ -917,6 +985,15 @@ function hexPath(cx,cy,s){
     p+=(i?'L':'M')+(cx+s*Math.cos(a)).toFixed(1)+' '+(cy+s*Math.sin(a)).toFixed(1);}
   return p+'Z';
 }
+/* Eight distinct fills for eight slots. The old list held five and indexed it
+   with i%8, so pieces 6 and 7 came out identical to pieces 1 and 2 — and the
+   real puzzles have 7, 7 and 8 pieces. Past the end it goes to text-primary
+   rather than wrapping: a piece with a shared colour is a board that lies. */
+var HEXPAL=['var(--steel)','var(--amber)','var(--mauve)','var(--terra)',
+            'var(--sage)','var(--steel-bright)','var(--amber-bright)','var(--text-primary)'];
+function HEXFILL(i){ return i===0?'var(--coral)':(HEXPAL[i-1]||'var(--text-primary)'); }
+function HEXID(i){ return i===0?'R':String.fromCharCode(64+i); }
+
 function drawHex(svg,pieces,exit,size,ox,oy,opts){
   opts=opts||{};
   var ns='http://www.w3.org/2000/svg';
@@ -932,13 +1009,27 @@ function drawHex(svg,pieces,exit,size,ox,oy,opts){
   pieces.forEach(function(pc,i){
     var g=document.createElementNS(ns,'g');
     g.setAttribute('data-i',i);g.setAttribute('style','cursor:grab');
+    if(opts.interactive){
+      g.setAttribute('tabindex','0');
+      g.setAttribute('role','button');
+      g.setAttribute('aria-label',opts.label?opts.label(i):'Piece '+HEXID(i));
+    }
     pc.c.forEach(function(cell){
       var p=hexPt(cell[0],cell[1],size,ox,oy);
       var path=document.createElementNS(ns,'path');
       path.setAttribute('class','hexp');
       path.setAttribute('d',hexPath(p.x,p.y,size*0.80));
-      path.setAttribute('fill',i===0?'var(--coral)':['var(--steel)','var(--amber)','var(--mauve)','var(--terra)','var(--sage)','var(--steel)','var(--amber)','var(--mauve)'][i%8]);
+      path.setAttribute('fill',HEXFILL(i));
       g.appendChild(path);});
+    // The square board letters its cars; the hex board never did, so colour
+    // was the only thing telling two pieces apart — and the palette cycled,
+    // so on the 8-piece puzzle it wasn't even unique. Letter them the same way.
+    var mid=pc.c[(pc.c.length/2)|0], mp=hexPt(mid[0],mid[1],size,ox,oy);
+    var t=document.createElementNS(ns,'text');
+    t.setAttribute('class','hexlab');
+    t.setAttribute('x',mp.x);t.setAttribute('y',mp.y);
+    t.textContent=HEXID(i);
+    g.appendChild(t);
     svg.appendChild(g);});
 
   /* Exit marker goes on TOP of the pieces — a piece often starts parked on the
@@ -1025,7 +1116,38 @@ function drawHex(svg,pieces,exit,size,ox,oy,opts){
     if(!nc.every(function(c){return inHex(c[0],c[1])&&!occ[c[0]+','+c[1]];}))return false;
     p.c=nc;return true;
   }
-  function render(){drawHex(svg,pieces,pz.exit,size,ox,oy);attach();}
+  var AXIS=['east–west','northeast–southwest','northwest–southeast'];
+  function canSlide(i,dir){
+    var save=pieces[i].c.map(function(c){return [c[0],c[1]];});
+    var ok=slide(i,dir); pieces[i].c=save; return ok;
+  }
+  function pieceLabel(i){
+    var ways=[canSlide(i,1)&&'forward',canSlide(i,-1)&&'back'].filter(Boolean);
+    return (i===0?'Red piece':'Piece '+HEXID(i))+', slides '+AXIS[pieces[i].ax]+', '+
+      (ways.length?'can move '+ways.join(' or '):'blocked');
+  }
+  function say(msg){ var l=document.getElementById('hex_live'); if(l)l.textContent=msg; }
+  function render(){
+    drawHex(svg,pieces,pz.exit,size,ox,oy,{interactive:true,label:pieceLabel});
+    attach();
+  }
+  /* Three axes, four arrow keys: right and up mean "along the axis, forward",
+     left and down mean back. Which compass direction that is depends on the
+     piece, so the label says so rather than the key pretending to. */
+  svg.addEventListener('keydown',function(ev){
+    var g=ev.target.closest?ev.target.closest('g[data-i]'):null; if(!g)return;
+    var k=ev.key, dir=(k==='ArrowRight'||k==='ArrowUp')?1:(k==='ArrowLeft'||k==='ArrowDown')?-1:0;
+    if(!dir)return;
+    ev.preventDefault();
+    var i=+g.getAttribute('data-i');
+    if(!slide(i,dir)){ say((i===0?'Red piece':'Piece '+HEXID(i))+' is blocked that way.'); return; }
+    moves++; f.textContent='Moves: '+moves;
+    var red=pieces[0].c.some(function(c){return c[0]===pz.exit[0]&&c[1]===pz.exit[1];});
+    if(red){tag.textContent='SOLVED';tag.className='tag ok';say('Solved in '+moves+' moves.');}
+    render();
+    var again=svg.querySelector('g[data-i="'+i+'"]');
+    if(again){ again.focus(); if(!red) say(again.getAttribute('aria-label')); }
+  });
 
   /* Drag slides continuously, like the square board: project the pointer onto
      the piece's axis, convert to a cell count, and step that far or until
