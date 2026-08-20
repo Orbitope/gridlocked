@@ -239,21 +239,28 @@
   #scat{display:block;width:100%;max-height:420px}
   .axhint{font-size:11px;color:var(--text-muted);padding:0 16px 12px;text-align:center}
 
-  /* The control that turns on legibility cannot itself be the least legible
-     thing on the page. Resting state was --text-muted at 3.21:1; this is
-     --text-primary at 10.7:1. Min 44px so it is a real target on a phone. */
+  /* The control that turns on legibility must not itself be the least legible
+     thing on the page. 10.7:1 resting, 44px target, first tab stop. */
   .a11y-btn{position:fixed;top:14px;right:14px;z-index:60;display:inline-flex;align-items:center;
     justify-content:center;gap:7px;min-height:44px;
-    font-family:var(--font-display);font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
-    background:rgba(26,24,18,.92);backdrop-filter:blur(6px);color:var(--text-primary);
-    border:1px solid var(--border-strong);border-radius:4px;padding:7px 13px;cursor:pointer;transition:.2s}
+    font-family:var(--font-display,sans-serif);font-weight:600;font-size:11px;letter-spacing:.12em;
+    text-transform:uppercase;background:rgba(26,24,18,.92);backdrop-filter:blur(6px);
+    color:var(--text-primary);border:1px solid var(--border-strong,#3d3a30);border-radius:4px;
+    padding:7px 13px;cursor:pointer;transition:.2s}
   .a11y-btn:hover{color:var(--text-bright);border-color:var(--amber)}
   .a11y-btn:focus-visible{outline:3px solid var(--amber-bright);outline-offset:3px}
-  .a11y-btn[aria-pressed="true"]{color:var(--amber-bright);border-color:var(--amber);
-    box-shadow:inset 0 0 0 1px var(--amber)}
   .a11y-btn svg{flex:none}
-  @media(max-width:560px){.a11y-btn span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
-    .a11y-btn{min-width:44px;padding:8px}}
+  /* State is not carried by colour. Amber-vs-bone is invisible to exactly the
+     readers this control exists for, so on/off is spelled out in the label and
+     the icon flips fill as well. */
+  .a11y-btn .state{font-weight:700}
+  .a11y-btn .state::after{content:"OFF"}
+  .a11y-btn[aria-pressed="true"]{color:var(--amber-bright);border-color:var(--amber);
+    background:rgba(196,154,60,.16);box-shadow:inset 0 0 0 1px var(--amber)}
+  .a11y-btn[aria-pressed="true"] .state::after{content:"ON"}
+  .a11y-btn[aria-pressed="true"] .half{transform:rotate(180deg);transform-origin:12px 12px}
+  @media(max-width:560px){.a11y-btn .txt{position:absolute;width:1px;height:1px;overflow:hidden;
+    clip-path:inset(50%)}.a11y-btn{min-width:44px;padding:8px 10px}}
 
   .scrolly{position:relative;max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:48px}
   @media(max-width:860px){.scrolly{grid-template-columns:1fr;gap:0}}
@@ -297,9 +304,10 @@
         title="High-contrast, colour-blind-safe figures">
   <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none"
        stroke="currentColor" stroke-width="2" stroke-linecap="round">
-    <circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M12 3a9 9 0 0 1 0 18" fill="currentColor" stroke="none"/>
+    <circle cx="12" cy="12" r="9"/>
+    <path class="half" d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor" stroke="none"/>
   </svg>
-  <span>Contrast</span>
+  <span class="txt">Contrast</span><span class="state"></span>
 </button>
 <div class="wrap">
 
