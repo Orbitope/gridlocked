@@ -38,8 +38,65 @@
     --steel:#6B7A8D; --steel-bright:#9AAABB;
     --mauve:#9A7AB0; --sage:#7D9A6A; --terra:#C47A5A; --coral:#FF5E3A;
     --text-bright:#EDE8DC; --text-primary:#C8C2B4; --text-muted:#6A6358;
+    --fig-bg:#0d0c07; --slate:#3f4a56; --border-strong:#3d3a30; --exit-fill:#2a3320;
     --font-display:'Rajdhani',sans-serif; --font-mono:'JetBrains Mono',monospace;
+    --stroke-floor:0px;      /* raised in accessibility mode; see [data-a11y] */
+    --mark-opacity:initial;
   }
+
+  /* ── Accessibility mode ────────────────────────────────────────────────
+     Engaged by the header control, or automatically under
+     `prefers-contrast: more`. Three things change, in order of how much
+     they actually matter to a reader:
+
+       1. the data-series tokens become a scale separated by LIGHTNESS as
+          well as hue. The house scale separates by hue alone, so sage and
+          terra land 20.4 apart under simulated deuteranopia — the same
+          colour, for the ~5% of men who have it. This scale's worst pair,
+          over normal/protan/deutan/tritan, is 48.1.
+       2. hairlines get a 2px floor and decorative opacity is dropped.
+          Presentation attributes lose to any CSS declaration, so this
+          reaches the stroke-widths the figure JS sets inline without
+          touching the JS.
+       3. marks pick up a second, non-colour encoding — see [data-series].
+
+     (3) is the one that does the real work. Colour alone cannot be made
+     colour-blind-safe at five-plus categories: any set of hues sitting at
+     one lightness collapses for somebody. The palette only buys margin;
+     the redundant encoding is what makes the figure readable.          */
+  html[data-a11y]{
+    --amber:#FCC14C; --amber-bright:#FCC14C;
+    --steel:#49BBF3; --steel-bright:#7FD0F7;
+    --mauve:#6767FF; --sage:#6B8B2A; --terra:#CE44A0; --coral:#F76363;
+    --slate:#CE44A0;              /* was #3f4a56 — 1.66:1, effectively invisible */
+    --text-muted:#A39B8C;         /* was #6A6358 — 3.21:1, under the text floor */
+    --text-primary:#DED8CA;
+    --border:#6E6959;             /* was #2a2820 — 1.29:1 */
+    --border-strong:#837D6B;
+    --exit-fill:#3B4A26;
+    --stroke-floor:2px;
+    --mark-opacity:1;
+  }
+  /* A blanket `stroke-width:2px` would also *thin* the strokes that are
+     deliberately heavy (the 2.5 trend line, the 3px hex path). CSS can't take
+     a max against a presentation attribute, so raise the thin values by name
+     instead. Presentation attributes lose to any CSS declaration, so these
+     win over what the figure JS sets inline. */
+  html[data-a11y] .fig svg [stroke-width="1"],
+  html[data-a11y] .fig svg [stroke-width="1.5"],
+  html[data-a11y] .fig svg [stroke-width="0.5"],
+  html[data-a11y] .fig svg [stroke-width=".5"],
+  html[data-a11y] .bsvg [stroke-width="1"],
+  html[data-a11y] .bsvg [stroke-width="1.5"]{stroke-width:var(--stroke-floor)}
+  html[data-a11y] .car rect,
+  html[data-a11y] .hexp{stroke-width:var(--stroke-floor)}
+  /* Decorative transparency halves effective contrast — a .72-opacity mark
+     at 4.47:1 lands at 2.84:1, below the 3:1 floor for a graphic. */
+  html[data-a11y] .fig svg [opacity],
+  html[data-a11y] .bsvg [opacity]{opacity:var(--mark-opacity)}
+  html[data-a11y] .car.dim rect{opacity:.55}
+  html[data-a11y] .cellr,
+  html[data-a11y] .hexc{stroke:var(--border-strong);stroke-opacity:1;stroke-width:1px}
   html{scroll-behavior:smooth}
   @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
   body{background:var(--void);color:var(--text-primary);font-family:var(--font-mono);
@@ -73,7 +130,7 @@
   .beat .coral{color:var(--coral)} .beat .steel{color:var(--steel-bright)} .beat .dim{color:var(--text-muted)}
   .rule{width:1px;height:60px;margin:0 auto;background:linear-gradient(transparent,var(--border),transparent)}
 
-  .fig{max-width:940px;margin:34px auto;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#0d0c07}
+  .fig{max-width:940px;margin:34px auto;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--fig-bg)}
   .fig figcaption,.fig .cap{font-size:11px;color:var(--text-muted);padding:11px 16px;border-top:1px solid var(--border);letter-spacing:.03em}
   .fig.narrow{max-width:660px}
   .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
@@ -84,7 +141,7 @@
     border-bottom:1px solid var(--border);font-size:12px;color:var(--text-muted);letter-spacing:.04em;flex-wrap:wrap}
   .wdg-head b{color:var(--text-bright);font-weight:500}
   .tag{font-weight:500;letter-spacing:.12em;padding:3px 10px;border-radius:3px;font-size:11px;white-space:nowrap}
-  .tag.ok{color:#0d0c07;background:var(--sage)} .tag.no{color:#0d0c07;background:var(--coral)}
+  .tag.ok{color:var(--fig-bg);background:var(--sage)} .tag.no{color:var(--fig-bg);background:var(--coral)}
   .tag.idle{color:var(--text-muted);border:1px solid var(--border)}
   .wdg-foot{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);
     display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
@@ -102,15 +159,15 @@
   .car.am rect{fill:var(--amber)} .car.mv rect{fill:var(--mauve)}
   .car.tr rect{fill:var(--terra)} .car.sg rect{fill:var(--sage)}
   .car.dim rect{opacity:.32}
-  .car text{fill:#0d0c07;font-family:var(--font-mono);font-weight:500;font-size:14px;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+  .car text{fill:var(--fig-bg);font-family:var(--font-mono);font-weight:500;font-size:14px;text-anchor:middle;dominant-baseline:central;pointer-events:none}
   .exitl{fill:var(--amber);font-family:var(--font-mono);font-size:11px;letter-spacing:.08em}
   .chain{display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:2px 16px 14px;min-height:40px}
   .chain .lnk{font-family:var(--font-mono);font-size:12px;min-width:26px;height:26px;border-radius:4px;
-    display:flex;align-items:center;justify-content:center;color:#0d0c07;font-weight:500;padding:0 5px}
+    display:flex;align-items:center;justify-content:center;color:var(--fig-bg);font-weight:500;padding:0 5px}
   .chain .arr{color:var(--text-muted);font-size:11px}
   .chain .none{color:var(--text-muted);font-size:11px}
   .hexc{fill:var(--raised);stroke:#000;stroke-opacity:.35}
-  .hexc.exit{fill:#2a3320;stroke:var(--sage)}
+  .hexc.exit{fill:var(--exit-fill);stroke:var(--sage)}
   .hexp{stroke:rgba(0,0,0,.4);stroke-width:1.5}
 
   .two{display:grid;grid-template-columns:1fr 1fr;gap:0}
@@ -143,15 +200,29 @@
     background:linear-gradient(90deg,rgba(196,122,90,.18),rgba(196,122,90,.04) 40%,transparent 40%,rgba(125,154,106,.06) 46%,rgba(125,154,106,.24))}
   .track .zero{position:absolute;top:-4px;bottom:-4px;left:40%;width:1.5px;background:var(--text-muted);opacity:.55}
   .track .dot{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid var(--void)}
-  .dot.sq{background:var(--amber-bright)} .dot.h1{background:#3f4a56}
+  .dot.sq{background:var(--amber-bright)} .dot.h1{background:var(--slate)}
   .dot.h2{background:var(--steel)} .dot.h3{background:var(--sage)}
   .scaleb{display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:5px}
   .legend{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;font-size:11px;color:var(--text-muted);padding:12px 16px;border-bottom:1px solid var(--border)}
   .legend .k{display:inline-flex;align-items:center;gap:6px}
   .legend .sw{width:10px;height:10px;border-radius:50%}
+  html[data-a11y] .legend .sw{width:12px;height:12px}
+  html[data-a11y] .legend .sw[data-shape="triangle"]{border-radius:0;clip-path:polygon(50% 0,100% 100%,0 100%)}
+  html[data-a11y] .legend .sw[data-shape="square"]{border-radius:1px}
+  html[data-a11y] .legend .sw[data-shape="diamond"]{border-radius:0;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
 
   #scat{display:block;width:100%;max-height:420px}
   .axhint{font-size:11px;color:var(--text-muted);padding:0 16px 12px;text-align:center}
+
+  .a11y-btn{position:fixed;top:14px;right:14px;z-index:60;display:inline-flex;align-items:center;gap:7px;
+    font-family:var(--font-display);font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    background:rgba(26,24,18,.86);backdrop-filter:blur(6px);color:var(--text-muted);
+    border:1px solid var(--border);border-radius:4px;padding:7px 11px;cursor:pointer;transition:.2s}
+  .a11y-btn:hover{color:var(--text-bright);border-color:var(--amber)}
+  .a11y-btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  .a11y-btn[aria-pressed="true"]{color:var(--amber-bright);border-color:var(--amber)}
+  @media(max-width:560px){.a11y-btn span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+    .a11y-btn{padding:8px}}
 
   .scrolly{position:relative;max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:48px}
   @media(max-width:860px){.scrolly{grid-template-columns:1fr;gap:0}}
@@ -187,6 +258,18 @@
 </head>
 <body>
 <div class="progress" id="progress"></div>
+
+<!-- orbitope:a11y-control — self-contained; move as one block.
+     Fixed rather than in-flow because the page opens on a full-viewport hero
+     with no persistent chrome to hang it off. -->
+<button id="a11yBtn" class="a11y-btn" type="button" aria-pressed="false"
+        title="High-contrast, colour-blind-safe figures">
+  <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none"
+       stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M12 3a9 9 0 0 1 0 18" fill="currentColor" stroke="none"/>
+  </svg>
+  <span>Contrast</span>
+</button>
 <div class="wrap">
 
 <header class="hero">
@@ -264,10 +347,10 @@
     <button class="toggle" data-x="d">X = dependency depth</button>
   </div>
   <div class="legend">
-    <span class="k"><span class="sw" style="background:var(--amber-bright)"></span>square</span>
-    <span class="k"><span class="sw" style="background:#3f4a56"></span>hex sparse</span>
-    <span class="k"><span class="sw" style="background:var(--steel)"></span>hex medium</span>
-    <span class="k"><span class="sw" style="background:var(--sage)"></span>hex dense</span>
+    <span class="k"><span class="sw" data-shape="circle" style="background:var(--amber-bright)"></span>square</span>
+    <span class="k"><span class="sw" data-shape="triangle" style="background:var(--slate)"></span>hex sparse</span>
+    <span class="k"><span class="sw" data-shape="square" style="background:var(--steel)"></span>hex medium</span>
+    <span class="k"><span class="sw" data-shape="diamond" style="background:var(--sage)"></span>hex dense</span>
     <span style="margin-left:auto">Y axis = moves to solve</span>
   </div>
   <svg id="scat" viewBox="0 0 560 400"></svg>
@@ -391,10 +474,10 @@
 
 <figure class="fig reveal">
   <div class="legend">
-    <span class="k"><span class="sw" style="background:var(--amber-bright)"></span>square</span>
-    <span class="k"><span class="sw" style="background:#3f4a56"></span>hex sparse</span>
-    <span class="k"><span class="sw" style="background:var(--steel)"></span>hex medium</span>
-    <span class="k"><span class="sw" style="background:var(--sage)"></span>hex dense</span>
+    <span class="k"><span class="sw" data-shape="circle" style="background:var(--amber-bright)"></span>square</span>
+    <span class="k"><span class="sw" data-shape="triangle" style="background:var(--slate)"></span>hex sparse</span>
+    <span class="k"><span class="sw" data-shape="square" style="background:var(--steel)"></span>hex medium</span>
+    <span class="k"><span class="sw" data-shape="diamond" style="background:var(--sage)"></span>hex dense</span>
     <span style="margin-left:auto">clustered dots = holds on every board type</span>
   </div>
 
@@ -465,6 +548,28 @@
 
 </div>
 
+<!-- orbitope:a11y-control script — pairs with the button above. -->
+<script>
+(function(){
+  var KEY='orbitope-a11y', root=document.documentElement, btn=document.getElementById('a11yBtn');
+  function stored(){ try{ return localStorage.getItem(KEY); }catch(e){ return null; } }
+  function apply(on,persist){
+    if(on) root.setAttribute('data-a11y',''); else root.removeAttribute('data-a11y');
+    if(btn) btn.setAttribute('aria-pressed',on?'true':'false');
+    if(persist){ try{ localStorage.setItem(KEY,on?'on':'off'); }catch(e){} }
+    // Figures that bake an encoding in at draw time redraw on this; the ones
+    // that only use token colours need nothing, the CSS already moved them.
+    document.dispatchEvent(new CustomEvent('a11ychange',{detail:{on:on}}));
+  }
+  // No media query reports colour blindness, so prefers-contrast is only a
+  // hint — it catches readers who already told the OS, and an explicit choice
+  // always wins over it.
+  var pref=stored();
+  var auto=window.matchMedia&&window.matchMedia('(prefers-contrast: more)').matches;
+  apply(pref?pref==='on':!!auto,false);
+  if(btn) btn.addEventListener('click',function(){ apply(!root.hasAttribute('data-a11y'),true); });
+})();
+</script>
 <script src="puzzles.js"></script>
 <script src="hex.js"></script>
 <script src="data.js"></script>
@@ -620,7 +725,7 @@ function solved(cars){return cars[0].pos===4;}
   function mk(t,attrs){var e=document.createElementNS(ns,t);
     for(var k in attrs)e.setAttribute(k,attrs[k]);return e;}
   function txt(x,y,s,fill,size,anchor){
-    var e=mk('text',{x:x,y:y,fill:fill||'#6A6358','font-size':size||11,
+    var e=mk('text',{x:x,y:y,fill:fill||'var(--text-muted)','font-size':size||11,
       'font-family':"'JetBrains Mono',monospace"});
     if(anchor)e.setAttribute('text-anchor',anchor);
     e.textContent=s;return e;}
@@ -628,51 +733,51 @@ function solved(cars){return cars[0].pos===4;}
   // horizontal guides
   [0,.25,.5,.75,1].forEach(function(f){
     add(mk('line',{x1:L,y1:T+ih*(1-f),x2:W-R,y2:T+ih*(1-f),
-      stroke:'#2a2820','stroke-width':1}));});
+      stroke:'var(--border)','stroke-width':1}));});
 
   // bars (count)
   var bw=iw/B.length;
   B.forEach(function(b,i){
     var h=b.n/maxN*ih;
     add(mk('rect',{x:L+i*bw+1.5,y:T+ih-h,width:bw-3,height:h,rx:2,
-      fill:'#3f4a56',opacity:.9}));});
+      fill:'var(--slate)',opacity:.9}));});
 
   // mean-difficulty line + dots
   var pts=[];
   B.forEach(function(b,i){ if(b.m==null)return;
     pts.push([L+i*bw+bw/2, T+ih*(1-(b.m-loM)/(hiM-loM))]);});
   add(mk('path',{d:pts.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(''),
-    fill:'none',stroke:'#E8C068','stroke-width':2.5,'stroke-linejoin':'round'}));
-  pts.forEach(function(p){add(mk('circle',{cx:p[0],cy:p[1],r:3,fill:'#E8C068'}));});
+    fill:'none',stroke:'var(--amber-bright)','stroke-width':2.5,'stroke-linejoin':'round'}));
+  pts.forEach(function(p){add(mk('circle',{cx:p[0],cy:p[1],r:3,fill:'var(--amber-bright)'}));});
 
   // in-chart legend — the header/caption explain it too, but this is the
   // thing to read while your eyes are actually on the lines.
-  add(mk('rect',{x:L,y:2,width:12,height:12,rx:2,fill:'#3f4a56'}));
-  add(txt(L+18,12,'puzzles of this size (left scale)','#9AAABB',10.5));
-  add(mk('line',{x1:L+230,y1:8,x2:L+248,y2:8,stroke:'#E8C068','stroke-width':2.5}));
-  add(mk('circle',{cx:L+239,cy:8,r:3,fill:'#E8C068'}));
-  add(txt(L+254,12,'avg. moves to solve, that size (right scale)','#E8C068',10.5));
+  add(mk('rect',{x:L,y:2,width:12,height:12,rx:2,fill:'var(--slate)'}));
+  add(txt(L+18,12,'puzzles of this size (left scale)','var(--steel-bright)',10.5));
+  add(mk('line',{x1:L+230,y1:8,x2:L+248,y2:8,stroke:'var(--amber-bright)','stroke-width':2.5}));
+  add(mk('circle',{cx:L+239,cy:8,r:3,fill:'var(--amber-bright)'}));
+  add(txt(L+254,12,'avg. moves to solve, that size (right scale)','var(--amber-bright)',10.5));
 
   // x axis: powers of ten
   for(var e=1;e<=5;e++){
     var f=(e-D.lo)/(D.hi-D.lo);
     if(f<0||f>1)continue;
     var x=L+f*iw;
-    add(mk('line',{x1:x,y1:T+ih,x2:x,y2:T+ih+5,stroke:'#3d3a30','stroke-width':1}));
-    add(txt(x,T+ih+19,'10^'+e,'#6A6358',10,'middle'));
+    add(mk('line',{x1:x,y1:T+ih,x2:x,y2:T+ih+5,stroke:'var(--border-strong)','stroke-width':1}));
+    add(txt(x,T+ih+19,'10^'+e,'var(--text-muted)',10,'middle'));
   }
-  add(txt(L+iw/2,H-14,'positions the puzzle can reach  (log scale) →','#6A6358',11,'middle'));
+  add(txt(L+iw/2,H-14,'positions the puzzle can reach  (log scale) →','var(--text-muted)',11,'middle'));
 
   // y axes (what each scale is is named in the legend above; these are just ticks)
-  add(txt(L-8,T+8,String(maxN),'#6A6358',10,'end'));
-  add(txt(L-8,T+ih,'0','#6A6358',10,'end'));
-  add(txt(W-R+8,T+ih*(1-(hiM*0.87-loM)/(hiM-loM)),Math.round(hiM*0.87)+' mv','#E8C068',10));
-  add(txt(W-R+8,T+ih*(1-(5-loM)/(hiM-loM)),'5 mv','#E8C068',10));
-  add(txt(W-R+8,T-8,'moves','#E8C068',10));
+  add(txt(L-8,T+8,String(maxN),'var(--text-muted)',10,'end'));
+  add(txt(L-8,T+ih,'0','var(--text-muted)',10,'end'));
+  add(txt(W-R+8,T+ih*(1-(hiM*0.87-loM)/(hiM-loM)),Math.round(hiM*0.87)+' mv','var(--amber-bright)',10));
+  add(txt(W-R+8,T+ih*(1-(5-loM)/(hiM-loM)),'5 mv','var(--amber-bright)',10));
+  add(txt(W-R+8,T-8,'moves','var(--amber-bright)',10));
 
   // callout: the flat stretch
-  add(txt(L+iw*0.30,T+14,'← 1,000× more positions →','#6A6358',10));
-  add(txt(L+iw*0.30,T+28,'≈ 2 more moves','#E8C068',10));
+  add(txt(L+iw*0.30,T+14,'← 1,000× more positions →','var(--text-muted)',10));
+  add(txt(L+iw*0.30,T+28,'≈ 2 more moves','var(--amber-bright)',10));
 })();
 
 /* --- static contrast boards --- */
@@ -691,7 +796,7 @@ function solved(cars){return cars[0].pos===4;}
    chain" are visually distinguishable, not just different numbers. */
 (function(){
   var A=P[8],Bd=P[9]; if(!A||!Bd)return;
-  var PAL=['#6B7A8D','#C49A3C','#9A7AB0','#C47A5A','#7D9A6A'];
+  var PAL=['var(--steel)','var(--amber)','var(--mauve)','var(--terra)','var(--sage)'];
 
   function cellsOf(c){
     var out=[];
@@ -732,7 +837,7 @@ function solved(cars){return cars[0].pos===4;}
         ch.forEach(function(ci,k){
           if(k){var a=document.createElement('span');a.className='arr';a.textContent='→';row.appendChild(a);}
           var b=document.createElement('span');b.className='lnk';
-          b.style.background=ci===0?'#FF5E3A':PAL[ci%PAL.length];
+          b.style.background=ci===0?'var(--coral)':PAL[ci%PAL.length];
           b.textContent=w.cars[ci].id;row.appendChild(b);});
         chainEl.appendChild(row);});
     };
@@ -787,7 +892,7 @@ function solved(cars){return cars[0].pos===4;}
       var r=document.createElementNS(ns,'rect');
       r.setAttribute('x',10+i*30);r.setAttribute('y',50-h);
       r.setAttribute('width',22);r.setAttribute('height',h);r.setAttribute('rx',2);
-      r.setAttribute('fill',worse?'#FF5E3A':'#7D9A6A');
+      r.setAttribute('fill',worse?'var(--coral)':'var(--sage)');
       bar.appendChild(r);});
     tag.textContent='step '+step+'/'+pz.mv.length;
   }
@@ -832,7 +937,7 @@ function drawHex(svg,pieces,exit,size,ox,oy,opts){
       var path=document.createElementNS(ns,'path');
       path.setAttribute('class','hexp');
       path.setAttribute('d',hexPath(p.x,p.y,size*0.80));
-      path.setAttribute('fill',i===0?'#FF5E3A':['#6B7A8D','#C49A3C','#9A7AB0','#C47A5A','#7D9A6A','#6B7A8D','#C49A3C','#9A7AB0'][i%8]);
+      path.setAttribute('fill',i===0?'var(--coral)':['var(--steel)','var(--amber)','var(--mauve)','var(--terra)','var(--sage)','var(--steel)','var(--amber)','var(--mauve)'][i%8]);
       g.appendChild(path);});
     svg.appendChild(g);});
 
@@ -844,7 +949,7 @@ function drawHex(svg,pieces,exit,size,ox,oy,opts){
     var ring=document.createElementNS(ns,'path');
     ring.setAttribute('d',hexPath(ep.x,ep.y,size*0.92));
     ring.setAttribute('fill','none');
-    ring.setAttribute('stroke','#7D9A6A');
+    ring.setAttribute('stroke','var(--sage)');
     ring.setAttribute('stroke-width','2.5');
     ring.setAttribute('stroke-dasharray','5 3');
     ring.setAttribute('pointer-events','none');
@@ -852,7 +957,7 @@ function drawHex(svg,pieces,exit,size,ox,oy,opts){
 
     var lab=document.createElementNS(ns,'text');
     lab.setAttribute('x',ep.x+size*1.15);lab.setAttribute('y',ep.y+4);
-    lab.setAttribute('fill','#7D9A6A');lab.setAttribute('font-size','11');
+    lab.setAttribute('fill','var(--sage)');lab.setAttribute('font-size','11');
     lab.setAttribute('font-family',"'JetBrains Mono',monospace");
     lab.setAttribute('letter-spacing','.08em');
     lab.setAttribute('pointer-events','none');
@@ -882,7 +987,7 @@ function drawHex(svg,pieces,exit,size,ox,oy,opts){
       var p=hexPt(cell[0],cell[1],size,ox,oy);
       var path=document.createElementNS(ns,'path');
       path.setAttribute('d',hexPath(p.x,p.y,size*0.80));
-      path.setAttribute('fill','#E8C068');path.setAttribute('class','hexp');
+      path.setAttribute('fill','var(--amber-bright)');path.setAttribute('class','hexp');
       svg.appendChild(path);});
     // arrows both ways along the axis
     [1,-1].forEach(function(s){
@@ -891,7 +996,7 @@ function drawHex(svg,pieces,exit,size,ox,oy,opts){
       var l=document.createElementNS(ns,'line');
       l.setAttribute('x1',a.x);l.setAttribute('y1',a.y);
       l.setAttribute('x2',b.x);l.setAttribute('y2',b.y);
-      l.setAttribute('stroke','#E8C068');l.setAttribute('stroke-width','3');
+      l.setAttribute('stroke','var(--amber-bright)');l.setAttribute('stroke-width','3');
       l.setAttribute('opacity','.85');svg.appendChild(l);});
     tag.textContent='axis '+(ax+1)+' of 3';
     msg.textContent=LBL[ax];
@@ -975,13 +1080,13 @@ function drawHex(svg,pieces,exit,size,ox,oy,opts){
 (function(){
   var svg=document.getElementById('dens'); if(!svg)return;
   var ns='http://www.w3.org/2000/svg';
-  var D=[{l:'square',v:0.607,c:'#E8C068'},{l:'hex sparse',v:0.655,c:'#3f4a56'},
-         {l:'hex medium',v:0.764,c:'#6B7A8D'},{l:'hex dense',v:0.831,c:'#7D9A6A'}];
+  var D=[{l:'square',v:0.607,c:'var(--amber-bright)'},{l:'hex sparse',v:0.655,c:'var(--slate)'},
+         {l:'hex medium',v:0.764,c:'var(--steel)'},{l:'hex dense',v:0.831,c:'var(--sage)'}];
   D.forEach(function(d,i){
     var w=d.v/0.9*380, y=30+i*54;
     var bg=document.createElementNS(ns,'rect');
     bg.setAttribute('x',140);bg.setAttribute('y',y);bg.setAttribute('width',380);
-    bg.setAttribute('height',26);bg.setAttribute('rx',3);bg.setAttribute('fill','#211e17');
+    bg.setAttribute('height',26);bg.setAttribute('rx',3);bg.setAttribute('fill','var(--raised)');
     svg.appendChild(bg);
     var r=document.createElementNS(ns,'rect');
     r.setAttribute('x',140);r.setAttribute('y',y);r.setAttribute('width',0);
@@ -991,17 +1096,17 @@ function drawHex(svg,pieces,exit,size,ox,oy,opts){
       r.setAttribute('width',w);},120+i*130);
     var t=document.createElementNS(ns,'text');
     t.setAttribute('x',128);t.setAttribute('y',y+18);t.setAttribute('text-anchor','end');
-    t.setAttribute('fill','#C8C2B4');t.setAttribute('font-size','12');
+    t.setAttribute('fill','var(--text-primary)');t.setAttribute('font-size','12');
     t.setAttribute('font-family',"'JetBrains Mono',monospace");t.textContent=d.l;
     svg.appendChild(t);
     var v=document.createElementNS(ns,'text');
     v.setAttribute('x',146+w);v.setAttribute('y',y+18);
-    v.setAttribute('fill','#E8C068');v.setAttribute('font-size','12');
+    v.setAttribute('fill','var(--amber-bright)');v.setAttribute('font-size','12');
     v.setAttribute('font-family',"'JetBrains Mono',monospace");v.textContent=d.v.toFixed(2);
     svg.appendChild(v);
   });
   var cap=document.createElementNS(ns,'text');
-  cap.setAttribute('x',140);cap.setAttribute('y',18);cap.setAttribute('fill','#6A6358');
+  cap.setAttribute('x',140);cap.setAttribute('y',18);cap.setAttribute('fill','var(--text-muted)');
   cap.setAttribute('font-size','11');cap.setAttribute('font-family',"'JetBrains Mono',monospace");
   cap.textContent='how strongly dependency depth predicts difficulty  (ρ)';
   svg.appendChild(cap);
@@ -1012,7 +1117,23 @@ function drawHex(svg,pieces,exit,size,ox,oy,opts){
   var svg=document.getElementById('scat'); if(!svg||!CORPUS.length)return;
   var hint=document.getElementById('scathint'),mode='st';
   var W=560,H=400,L=58,R=18,T=18,B=44;
-  var CMAP={sq:'#E8C068',hx_low:'#3f4a56',hx_med:'#6B7A8D',hx_high:'#7D9A6A'};
+  var CMAP={sq:'var(--amber-bright)',hx_low:'var(--slate)',hx_med:'var(--steel)',hx_high:'var(--sage)'};
+  /* Second encoding for accessibility mode. 550 points at r=2.6 is already a
+     dense cloud, so the shapes have to differ in silhouette at ~6px, not in
+     detail: a filled disc, a triangle, a square and a diamond do; a star and
+     a pentagon would not. Normal mode keeps the plain discs — the shapes cost
+     legibility in the overlap and only earn it when colour is unavailable. */
+  var SHAPE={sq:'circle',hx_low:'triangle',hx_med:'square',hx_high:'diamond'};
+  function mark(ns,kind,x,y,r){
+    if(kind==='circle'){
+      var c=document.createElementNS(ns,'circle');
+      c.setAttribute('cx',x);c.setAttribute('cy',y);c.setAttribute('r',r);return c;}
+    var pts=kind==='triangle'?[[0,-r*1.2],[r*1.1,r*0.8],[-r*1.1,r*0.8]]
+           :kind==='square'  ?[[-r*.9,-r*.9],[r*.9,-r*.9],[r*.9,r*.9],[-r*.9,r*.9]]
+                             :[[0,-r*1.3],[r*1.15,0],[0,r*1.3],[-r*1.15,0]];
+    var e=document.createElementNS(ns,'polygon');
+    e.setAttribute('points',pts.map(function(q){return (x+q[0]).toFixed(1)+','+(y+q[1]).toFixed(1);}).join(' '));
+    return e;}
   function render(){
     var ns='http://www.w3.org/2000/svg';
     while(svg.firstChild)svg.removeChild(svg.firstChild);
@@ -1024,17 +1145,20 @@ function drawHex(svg,pieces,exit,size,ox,oy,opts){
       var l=document.createElementNS(ns,'line');
       l.setAttribute('x1',a[0]);l.setAttribute('y1',a[1]);
       l.setAttribute('x2',a[2]);l.setAttribute('y2',a[3]);
-      l.setAttribute('stroke','#2a2820');l.setAttribute('stroke-width','1.5');svg.appendChild(l);});
+      l.setAttribute('stroke','var(--border)');l.setAttribute('stroke-width','1.5');svg.appendChild(l);});
+    var a11y=document.documentElement.hasAttribute('data-a11y');
     CORPUS.forEach(function(p){
       var xv=mode==='st'?p.st:p.d;
       var cx=L+(xv/xmax)*(W-L-R), cy=(H-B)-(p.o/ymax)*(H-T-B);
-      var c=document.createElementNS(ns,'circle');
-      c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',2.6);
-      c.setAttribute('fill',CMAP[p.s]||'#6B7A8D');c.setAttribute('opacity','.72');
+      var c=a11y?mark(ns,SHAPE[p.s]||'circle',cx,cy,3.2)
+                :document.createElementNS(ns,'circle');
+      if(!a11y){c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',2.6);
+                c.setAttribute('opacity','.72');}
+      c.setAttribute('fill',CMAP[p.s]||'var(--steel)');
       svg.appendChild(c);});
     function lab(x,y,txt,anchor){
       var t=document.createElementNS(ns,'text');
-      t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('fill','#6A6358');
+      t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('fill','var(--text-muted)');
       t.setAttribute('font-size','11');t.setAttribute('font-family',"'JetBrains Mono',monospace");
       if(anchor)t.setAttribute('text-anchor',anchor);t.textContent=txt;svg.appendChild(t);}
     lab(W/2,H-12,mode==='st'?'total reachable positions →':'dependency depth →','middle');
@@ -1046,6 +1170,9 @@ function drawHex(svg,pieces,exit,size,ox,oy,opts){
       : 'Same 550 puzzles, one axis changed. Depth tells you almost everything — ρ = 0.88.';
   }
   render();
+  // Marker shapes are baked in at draw time, so the cloud has to be rebuilt
+  // when the mode flips. The token colours are not — those follow the CSS.
+  document.addEventListener('a11ychange',render);
   document.querySelectorAll('.toggle').forEach(function(b){
     b.onclick=function(){
       document.querySelectorAll('.toggle').forEach(function(o){o.classList.remove('active');});
