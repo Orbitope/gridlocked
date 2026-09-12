@@ -357,7 +357,7 @@
 <section class="beat">
   <div class="eyebrow">The problem</div>
   <h2>Size doesn't predict difficulty.</h2>
-  <p>First, what “difficulty” means here. It's <b>the fewest moves a perfect solver needs</b>, so more moves means a harder puzzle. That's a proxy for human struggle, not the same thing, but it's objective, and we can compute it exactly for every puzzle.</p>
+  <p>First, what “difficulty” means here. It's <b>the fewest moves a perfect solver needs</b>, so more moves means a harder puzzle. That's a proxy for human struggle, but it's objective, and we can compute it exactly for every puzzle.</p>
   <p>So compare two real puzzles. The left one can reach <b>11,487</b> positions; the right one only <b>422</b>, twenty-seven times smaller. If size drove difficulty, the left should be far harder.</p>
 </section>
 
@@ -472,7 +472,7 @@
   <div class="eyebrow">The experiment</div>
   <h2>So we changed the shape of the board.</h2>
   <p>If dependency depth governs difficulty, it should hold on a board that isn't a square grid. So we built one, a <b>hexagonal</b> board where pieces slide along <span class="amber">three</span> axes instead of two.</p>
-  <p>As far as we can tell, no one has run Rush Hour on a hex grid before. The third axis changes how the game plays, not just how it looks.</p>
+  <p>As far as we can tell, no one has run Rush Hour on a hex grid before. The third axis changes how the game plays.</p>
 </section>
 
 <figure class="fig narrow reveal">
@@ -541,7 +541,7 @@
   <div class="metric">
     <div class="mh"><span class="mn">optimal solutions</span><span class="rho g">ρ 0.46 – 0.68</span></div>
     <div class="md">How many genuinely different shortest solutions exist.</div>
-    <div class="me">Harder puzzles have <b>more</b> optimal solutions, not fewer. The median Rush Hour puzzle has <b>484</b> distinct optimal solutions; one in our set has 640,980. The idea of “the one clever line” is mostly a myth. Difficulty comes from how many solutions exist, not from a single solution being rare.</div>
+    <div class="me">Harder puzzles have <b>more</b> optimal solutions. The median Rush Hour puzzle has <b>484</b> distinct optimal solutions; one in our set has 640,980. The idea of “the one clever line” is mostly a myth. Difficulty comes from how many solutions exist.</div>
     <div class="track"><span class="zero"></span><span class="dot sq" style="left:70.8%"></span><span class="dot h1" style="left:77.3%"></span><span class="dot h2" style="left:81.7%"></span><span class="dot h3" style="left:85.6%"></span></div>
     <div class="scaleb"><span>−0.6</span><span>no relationship</span><span>+0.9</span></div>
   </div>
