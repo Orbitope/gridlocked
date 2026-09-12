@@ -314,7 +314,7 @@
 <header class="hero">
   <div class="kicker">Gridlocked · what makes a puzzle hard</div>
   <h1>A <span class="strike">bigger</span> maze isn't a <span class="accent">harder</span> maze.</h1>
-  <p class="sub">We solved <b>14,163</b> sliding-block puzzles — every one of them exhaustively, to the last reachable position. <a class="xref" href="https://orbitope.com/hextruchet/">The obvious measure of difficulty turns out to be worthless.</a> Something less obvious predicts it almost perfectly. Every board on this page is a real puzzle from that set.</p>
+  <p class="sub">We solved <b>14,163</b> sliding-block puzzles, every one of them exhaustively, to the last reachable position. <a class="xref" href="https://orbitope.com/hextruchet/">The obvious measure of difficulty turns out to be worthless.</a> Something less obvious predicts it almost perfectly. Every board on this page is a real puzzle from that set.</p>
   <div class="scroll-cue">scroll</div>
 </header>
 
@@ -322,12 +322,12 @@
 <section class="beat">
   <div class="eyebrow">First, the game</div>
   <h2>Get the red car out.</h2>
-  <p>Cars slide along their own axis only — horizontal cars left and right, vertical cars up and down. Nothing jumps, nothing rotates. The red car escapes through the gap on the right edge.</p>
+  <p>Cars slide along their own axis only. Horizontal cars move left and right, vertical cars up and down. Nothing jumps, nothing rotates. The red car escapes through the gap on the right edge.</p>
   <p><span class="dim">Drag the cars. This one takes six moves.</span></p>
 </section>
 
 <figure class="fig narrow reveal">
-  <div class="wdg-head"><span>Try it — <b>drag a car</b>, or tab to one and press an arrow key</span><span class="tag idle" id="t_play">6 moves optimal</span></div>
+  <div class="wdg-head"><span>Try it. <b>Drag a car</b>, or tab to one and press an arrow key</span><span class="tag idle" id="t_play">6 moves optimal</span></div>
   <svg class="bsvg" id="b_play" role="img" aria-label="Interactive sliding-block puzzle. Drag a car; the red car escapes right. Solvable in six moves." viewBox="0 0 300 300"></svg>
   <div class="wdg-foot"><span id="f_play">Moves: 0</span><span class="kbd-hint">or tab to a car and use the arrow keys</span><button class="btn" id="r_play">Reset</button></div>
   <p id="play_live" class="sr-only" role="status" aria-live="polite"></p>
@@ -338,17 +338,17 @@
 <!-- 2. WHAT IS GRAPH SIZE -->
 <section class="beat">
   <div class="eyebrow">The measurement</div>
-  <h2>Every puzzle contains a hidden map.</h2>
-  <p>From the starting position you might have eight legal moves. Each leads to a position with its own eight. Follow that outward and you get every arrangement the puzzle can ever reach — its <b>state space</b>.</p>
-  <p>That number is the puzzle's <span class="amber">size</span>. It's the first thing anyone measures, because it feels like it should mean something: a puzzle with 11,000 possible positions has to be harder than one with 400.</p>
-  <p>Here's every puzzle in the set, sorted by size. The scale is logarithmic — each step right is <b>ten times bigger</b>.</p>
+  <h2>Every puzzle contains a state space.</h2>
+  <p>From the starting position you might have eight legal moves. Each leads to a position with its own eight. Follow that outward and you get every arrangement the puzzle can ever reach, its <b>state space</b>.</p>
+  <p>That number is the puzzle's <span class="amber">size</span>, and it's the first thing anyone measures. It feels like it should mean something. A puzzle with 11,000 possible positions has to be harder than one with 400.</p>
+  <p>Here's every puzzle in the set, sorted by size. The scale is logarithmic, so each step right is <b>ten times bigger</b>.</p>
 </section>
 
 <figure class="fig reveal">
   <div class="wdg-head"><span>Distribution of puzzle size · <b>12,500 square puzzles</b></span>
     <span class="tag idle">bars = how many puzzles · line = how hard they were</span></div>
   <svg id="dist" role="img" aria-describedby="cap-1" aria-label="Histogram of 12,500 square puzzles by state-space size, with average moves to solve overlaid as a line." viewBox="0 0 620 330" style="width:100%;display:block"></svg>
-  <figcaption class="cap" id="cap-1">Puzzle size spans <b style="color:var(--amber-bright)">four and a half orders of magnitude</b> — from 11 positions to 293,765. If size drove difficulty, the amber line would climb steeply from left to right. It barely moves: a puzzle a thousand times larger takes about two more moves.</figcaption>
+  <figcaption class="cap" id="cap-1">Puzzle size spans <b style="color:var(--amber-bright)">four and a half orders of magnitude</b>, from 11 positions to 293,765. If size drove difficulty, the amber line would climb steeply from left to right. It barely moves. A puzzle a thousand times larger takes about two more moves.</figcaption>
 </figure>
 
 <div class="rule"></div>
@@ -356,9 +356,9 @@
 <!-- 3. THE LETDOWN -->
 <section class="beat">
   <div class="eyebrow">The problem</div>
-  <h2>Size is a liar.</h2>
-  <p>First, what “difficulty” means here: <b>the fewest moves a perfect solver needs</b>. More moves, harder puzzle. It's a proxy for human struggle, not the same thing — but it's objective, and we can compute it exactly for every puzzle.</p>
-  <p>So compare two real puzzles. The left one can reach <b>11,487</b> positions; the right one only <b>422</b> — twenty-seven times smaller. If size drove difficulty, the left should be far harder.</p>
+  <h2>Size doesn't predict difficulty.</h2>
+  <p>First, what “difficulty” means here. It's <b>the fewest moves a perfect solver needs</b>, so more moves means a harder puzzle. That's a proxy for human struggle, not the same thing, but it's objective, and we can compute it exactly for every puzzle.</p>
+  <p>So compare two real puzzles. The left one can reach <b>11,487</b> positions; the right one only <b>422</b>, twenty-seven times smaller. If size drove difficulty, the left should be far harder.</p>
 </section>
 
 <figure class="fig reveal">
@@ -403,8 +403,8 @@
 <section class="beat">
   <div class="eyebrow win">The thing that works</div>
   <h2>What has to move before what.</h2>
-  <p>When a car moves into space another car just left, the second one <b>depended</b> on the first. Trace those hand-offs and every puzzle reveals a structure.</p>
-  <p>Two real puzzles below. <b>Both take exactly six moves</b> — by solution length they're identical. Step them together and watch the hand-offs form.</p>
+  <p>When a car moves into space another car just left, the second one <b>depended</b> on the first. Trace those hand-offs and you find a structure in every puzzle.</p>
+  <p>Below are two real puzzles. <b>Both take exactly six moves</b>, so by solution length they're identical. Step them together and watch the hand-offs form.</p>
 </section>
 
 <figure class="fig reveal">
@@ -424,27 +424,27 @@
   </div>
   <div class="wdg-foot"><span id="dep_msg">Press Step to play both solutions at once.</span>
     <span><button class="btn" id="dep_step">Step</button> <button class="btn" id="dep_reset">Reset</button></span></div>
-  <figcaption class="cap" id="cap-3">Left: three separate two-car hand-offs. Nothing waits on more than one thing, so you can work them in almost any order. Right: a single chain six cars long, where each car is waiting on the one before it — you have to see the whole sequence before the first move makes sense. Same six moves, and that's the difference dependency depth measures.</figcaption>
+  <figcaption class="cap" id="cap-3">Left: three separate two-car hand-offs. Nothing waits on more than one thing, so you can work them in almost any order. Right: a single chain six cars long, where each car is waiting on the one before it. You have to see the whole sequence before the first move makes sense. Same six moves, and that's the difference dependency depth measures.</figcaption>
 </figure>
 
 <section class="beat">
-  <p>Now the same measurement on two puzzles that are <b>identical in length</b> — both exactly 11 moves. One has a depth of 3. The other, 11: every single move is a prerequisite for the next.</p>
+  <p>Now the same measurement on two puzzles that are <b>identical in length</b>, both exactly 11 moves. One has a depth of 3. The other has a depth of 11, where every move is a prerequisite for the next.</p>
 </section>
 
 <figure class="fig reveal">
   <div class="two">
     <div>
-      <h4>Depth 3 — shallow</h4>
+      <h4>Depth 3, shallow</h4>
       <div class="stats"><span>11 moves</span><span>depth <b class="big">3</b></span><span>states <b>1,123</b></span></div>
       <svg class="bsvg" id="b_shal" role="img" aria-describedby="cap-4" aria-label="Shallow puzzle: 11 moves, dependency depth 3, 1,123 reachable states." viewBox="0 0 300 300" style="max-width:280px"></svg>
     </div>
     <div>
-      <h4>Depth 11 — one long chain</h4>
+      <h4>Depth 11, one long chain</h4>
       <div class="stats"><span>11 moves</span><span>depth <b class="big">11</b></span><span>states <b>47</b></span></div>
       <svg class="bsvg" id="b_deep" role="img" aria-describedby="cap-4" aria-label="Deep puzzle: 11 moves, dependency depth 11, only 47 reachable states." viewBox="0 0 300 300" style="max-width:280px"></svg>
     </div>
   </div>
-  <figcaption class="cap" id="cap-4">Same solution length. The right-hand puzzle has one forced chain with no slack — and only 47 reachable positions, making it one of the smallest and hardest in the set.</figcaption>
+  <figcaption class="cap" id="cap-4">Both puzzles have the same solution length. The right-hand puzzle has one forced chain with no slack, and only 47 reachable positions, making it one of the smallest and hardest in the set.</figcaption>
 </figure>
 
 <div class="rule"></div>
@@ -453,8 +453,8 @@
 <section class="beat">
   <div class="eyebrow win">The second thing that works</div>
   <h2>Sometimes you have to drive away from the exit.</h2>
-  <p>The instinct is to shrink the gap between the red car and the exit on every move. In hard puzzles that instinct is a trap: the winning move often makes the position look <b>worse</b>.</p>
-  <p>We count the fraction of moves in the optimal solution that fail to make greedy progress. In the puzzle below, <span class="coral">9 of 11 moves</span> — 82% — go the "wrong" way. Watch the distance meter climb.</p>
+  <p>The instinct is to shrink the gap between the red car and the exit on every move. In hard puzzles that instinct is a trap, because the winning move often makes the position look <b>worse</b>.</p>
+  <p>We count the fraction of moves in the optimal solution that fail to make greedy progress. In the puzzle below, <span class="coral">9 of 11 moves</span> (82%) go the "wrong" way. Watch the distance meter climb.</p>
 </section>
 
 <figure class="fig narrow reveal">
@@ -470,9 +470,9 @@
 <!-- 6. HEX DEEP DIVE -->
 <section class="beat">
   <div class="eyebrow">The experiment</div>
-  <h2>So we changed the shape of the world.</h2>
-  <p>If dependency depth really governs difficulty, it should hold on a board that isn't a square grid at all. So we built one: a <b>hexagonal</b> board where pieces slide along <span class="amber">three</span> axes instead of two.</p>
-  <p>Nobody, as far as we can tell, has run Rush Hour on a hex grid before. It's not a reskin — the third axis genuinely changes the game.</p>
+  <h2>So we changed the shape of the board.</h2>
+  <p>If dependency depth governs difficulty, it should hold on a board that isn't a square grid. So we built one, a <b>hexagonal</b> board where pieces slide along <span class="amber">three</span> axes instead of two.</p>
+  <p>As far as we can tell, no one has run Rush Hour on a hex grid before. The third axis changes how the game plays, not just how it looks.</p>
 </section>
 
 <figure class="fig narrow reveal">
@@ -482,11 +482,11 @@
 </figure>
 
 <section class="beat">
-  <p>Here's a real hex puzzle from the corpus — same rules, same red-piece-to-exit goal, but pieces now slide along whichever of the three axes they're laid on.</p>
+  <p>Here's a real hex puzzle from the corpus. The rules are the same, and the goal is the same (get the red piece to the exit), but pieces now slide along whichever of the three axes they're laid on.</p>
 </section>
 
 <figure class="fig narrow reveal">
-  <div class="wdg-head"><span>Real hex puzzle — <b>drag a piece</b>, or tab to one and press an arrow key</span><span class="tag idle" id="t_hex">solves in 5</span></div>
+  <div class="wdg-head"><span>Real hex puzzle. <b>Drag a piece</b>, or tab to one and press an arrow key</span><span class="tag idle" id="t_hex">solves in 5</span></div>
   <svg class="bsvg" id="b_hex" role="img" aria-label="Interactive hex puzzle. Drag a piece; solves in five moves." viewBox="0 0 340 320" style="max-width:420px"></svg>
   <div class="wdg-foot"><span id="f_hex">Moves: 0</span><span class="kbd-hint">or tab to a piece and use the arrow keys</span><button class="btn" id="r_hex">Reset</button></div>
   <p id="hex_live" class="sr-only" role="status" aria-live="polite"></p>
@@ -494,9 +494,9 @@
 
 <section class="beat">
   <div class="eyebrow">The hex result</div>
-  <h2>The third axis drains the tension.</h2>
-  <p>More freedom means fewer traps. Hex puzzles solve in <b>4.3 to 7.5 moves</b> on average, against square's <b>12.2</b> — and their dependency chains are shorter at every density we tried. Give pieces an escape route and gridlock stops being gridlock.</p>
-  <p>But pack the board tighter and structure reasserts itself. As hex density rises, dependency depth predicts difficulty <span class="sage">better and better</span> — 0.66, then 0.76, then 0.83. Crowding is what manufactures depth.</p>
+  <h2>The third axis makes the puzzles easier.</h2>
+  <p>More freedom means fewer traps. Hex puzzles solve in <b>4.3 to 7.5 moves</b> on average, against square's <b>12.2</b>, and their dependency chains are shorter at every density we tried.</p>
+  <p>But pack the board tighter and the structure returns. As hex density rises, dependency depth predicts difficulty <span class="sage">better and better</span>, from 0.66 to 0.76 to 0.83. Crowding creates the depth.</p>
 </section>
 
 <figure class="fig reveal">
@@ -510,7 +510,7 @@
 <section class="beat">
   <div class="eyebrow">Everything we measured</div>
   <h2>The scoreboard.</h2>
-  <p>Five metrics, four board types, 14,163 puzzles. Each dot is how strongly that metric tracked difficulty on one board type — further right means a stronger relationship.</p>
+  <p>The study covers five metrics, four board types, and 14,163 puzzles. Each dot is how strongly that metric tracked difficulty on one board type. Further right means a stronger relationship.</p>
 </section>
 
 <figure class="fig reveal">
@@ -525,7 +525,7 @@
   <div class="metric">
     <div class="mh"><span class="mn">dependency depth</span><span class="rho g">ρ 0.61 – 0.83</span></div>
     <div class="md">The longest chain of “this must move before that.”</div>
-    <div class="me">How many consequences deep you have to plan. Strongest predictor on every board type we tested, and it gets stronger as boards get crowded. Two puzzles of identical length can differ by 8 in depth — and it's the depth you feel.</div>
+    <div class="me">How many consequences deep you have to plan. Strongest predictor on every board type we tested, and it gets stronger as boards get crowded. Two puzzles of identical length can differ by 8 in depth, and it's the depth you feel.</div>
     <div class="track"><span class="zero"></span><span class="dot sq" style="left:80.5%"></span><span class="dot h1" style="left:83.7%"></span><span class="dot h2" style="left:90.9%"></span><span class="dot h3" style="left:95.4%"></span></div>
     <div class="scaleb"><span>−0.6</span><span>no relationship</span><span>+0.9</span></div>
   </div>
@@ -533,7 +533,7 @@
   <div class="metric">
     <div class="mh"><span class="mn">counterintuitive fraction</span><span class="rho g">ρ 0.44 – 0.75</span></div>
     <div class="md">Share of moves that make the position look worse.</div>
-    <div class="me">Greedy play — always close the gap to the exit — is how people get stuck. Puzzles that punish that instinct measure as harder. We use the fraction rather than the raw count, because longer solutions rack up more of them for free.</div>
+    <div class="me">Greedy play, always closing the gap to the exit, is how people get stuck. Puzzles that punish that instinct measure as harder. We use the fraction rather than the raw count, because longer solutions rack up more of them by length alone.</div>
     <div class="track"><span class="zero"></span><span class="dot sq" style="left:69%"></span><span class="dot h1" style="left:75.3%"></span><span class="dot h2" style="left:85.6%"></span><span class="dot h3" style="left:90.3%"></span></div>
     <div class="scaleb"><span>−0.6</span><span>no relationship</span><span>+0.9</span></div>
   </div>
@@ -541,7 +541,7 @@
   <div class="metric">
     <div class="mh"><span class="mn">optimal solutions</span><span class="rho g">ρ 0.46 – 0.68</span></div>
     <div class="md">How many genuinely different shortest solutions exist.</div>
-    <div class="me">The surprise: harder puzzles have <b>more</b>, not fewer. The median Rush Hour puzzle has <b>484</b> distinct optimal solutions — one in our set has 640,980. The romantic idea of “the one clever line” is mostly a myth; difficulty lives in the size of the forest, not the rarity of the path.</div>
+    <div class="me">Harder puzzles have <b>more</b> optimal solutions, not fewer. The median Rush Hour puzzle has <b>484</b> distinct optimal solutions; one in our set has 640,980. The idea of “the one clever line” is mostly a myth. Difficulty comes from how many solutions exist, not from a single solution being rare.</div>
     <div class="track"><span class="zero"></span><span class="dot sq" style="left:70.8%"></span><span class="dot h1" style="left:77.3%"></span><span class="dot h2" style="left:81.7%"></span><span class="dot h3" style="left:85.6%"></span></div>
     <div class="scaleb"><span>−0.6</span><span>no relationship</span><span>+0.9</span></div>
   </div>
@@ -549,7 +549,7 @@
   <div class="metric">
     <div class="mh"><span class="mn">tightest moment</span><span class="rho w">ρ −0.35 – −0.18</span></div>
     <div class="md">Fewest legal moves available at any point in the solution.</div>
-    <div class="me">A promising idea — the pinch point where the puzzle allows only one move — that mostly didn't pan out. It leans the right way (tighter is harder) but weakly and inconsistently. Included because not every structural metric worked, and pretending otherwise would be dishonest.</div>
+    <div class="me">The pinch point, where the puzzle allows only one move, seemed promising but mostly didn't pan out. It leans the right way (tighter is harder) but weakly and inconsistently. Included because not every structural metric worked.</div>
     <div class="track"><span class="zero"></span><span class="dot sq" style="left:23.5%"></span><span class="dot h1" style="left:28.1%"></span><span class="dot h2" style="left:16.8%"></span><span class="dot h3" style="left:23.4%"></span></div>
     <div class="scaleb"><span>−0.6</span><span>no relationship</span><span>+0.9</span></div>
   </div>
@@ -557,15 +557,15 @@
   <div class="metric">
     <div class="mh"><span class="mn">puzzle size</span><span class="rho w">ρ −0.11 – 0.15</span></div>
     <div class="md">Total positions the puzzle can reach.</div>
-    <div class="me">The intuitive answer, and the one this whole study set out to test. On two different geometries and four densities it hovered at zero — sometimes negative. A vast state space can hide a six-move solution. A 47-position puzzle can take eleven moves and be brutal.</div>
+    <div class="me">This is the intuitive answer, and the one the study set out to test. On two different geometries and four densities it hovered at zero, sometimes negative. A vast state space can hide a six-move solution. A 47-position puzzle can take eleven moves and be brutal.</div>
     <div class="track"><span class="zero"></span><span class="dot sq" style="left:49.7%"></span><span class="dot h1" style="left:41.9%"></span><span class="dot h2" style="left:33%"></span><span class="dot h3" style="left:47.7%"></span></div>
     <div class="scaleb"><span>−0.6</span><span>no relationship</span><span>+0.9</span></div>
   </div>
 </figure>
 
 <div class="caveats">
-  <div class="c"><span><b>What "difficulty" means here.</b> We measure against the minimum number of moves a perfect solver needs — an objective proxy, not human struggle. Whether people <em>feel</em> these puzzles as harder is the obvious next experiment, and it needs human-labeled puzzles.</span></div>
-  <div class="c"><span><b>The square numbers are externally verified.</b> Our solver's move counts matched an independent 2.5-million-puzzle reference database on every puzzle we sampled. The hex numbers have no such reference — no one has built one — so they rest on our solver alone.</span></div>
+  <div class="c"><span><b>What "difficulty" means here.</b> We measure against the minimum number of moves a perfect solver needs, an objective proxy rather than human struggle. Whether people <em>feel</em> these puzzles as harder is the obvious next experiment, and it needs human-labeled puzzles.</span></div>
+  <div class="c"><span><b>The square numbers are externally verified.</b> Our solver's move counts matched an independent 2.5-million-puzzle reference database on every puzzle we sampled. The hex numbers have no such reference (no one has built one), so they rest on our solver alone.</span></div>
   <div class="c"><span><b>Method.</b> 12,500 square puzzles sampled from Fogleman's complete 6×6 database; 1,663 hex puzzles generated across three densities. Every puzzle solved exhaustively. Spearman rank correlation. Dependency depth averaged over 8 sampled optimal solutions per puzzle, because most puzzles have many.</span></div>
 </div>
 
@@ -573,10 +573,10 @@
 
 <section class="outro">
   <h2>Play it yourself.</h2>
-  <p>Gridlocked is the game these puzzles come from — square and hex, both playable in the browser.</p>
+  <p>Gridlocked is the game these puzzles come from, square and hex, both playable in the browser.</p>
   <div class="embed-slot">
     <div class="t">PLAY THE FULL GAME</div>
-    <div class="s">Square and hex, both playable in the browser &mdash; free on itch.io.</div>
+    <div class="s">Square and hex, both playable in the browser, free on itch.io.</div>
     <a class="itch-btn" href="https://orbitope.itch.io/gridlocked" target="_blank" rel="noopener">
       <svg width="16" height="16" viewBox="0 0 111 111" fill="currentColor" aria-hidden="true">
         <path d="M101.4 11.7C97 5.3 91.8 1 84.6.4c-1.4-.1-2.7-.1-4.1 0-6.4.5-13 3-19.4 6.4-2.4 1.3-4.8 2.7-7.1 4.2-2.3-1.5-4.7-2.9-7.1-4.2-6.4-3.4-13-5.9-19.4-6.4-1.4-.1-2.7-.1-4.1 0-7.2.6-12.4 4.9-16.8 11.3C1.4 18 .3 24.8.3 31.6c0 6.3 1 22.6 2.6 33.4 1.4 9.3 3.4 17.9 8 22.9 3.9 4.3 8.8 6.1 14.4 5.6 4.5-.4 10.2-2.6 15.6-5.7 4.9-2.8 9.3-6.3 13.6-9.9 4.3 3.6 8.7 7.1 13.6 9.9 5.4 3.1 11.1 5.3 15.6 5.7 5.6.5 10.5-1.3 14.4-5.6 4.6-5 6.6-13.6 8-22.9 1.6-10.8 2.6-27.1 2.6-33.4 0-6.8-1.1-13.6-6.4-19.9z"/>
